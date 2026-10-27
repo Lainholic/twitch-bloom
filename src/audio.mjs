@@ -162,3 +162,74 @@ export function playCard() {
   osc.start(now);
   osc.stop(now + 0.38);
 }
+// Sunlight / warm chime shimmer
+export function playSun() {
+  const ctx = getAudioContext();
+  if (!ctx || isMuted) return;
+  const now = ctx.currentTime;
+  const freqs = [659.25, 830.61, 987.77, 1318.51, 1661.22];
+  freqs.forEach((f, idx) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const t = now + idx * 0.05;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f, t);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.2, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start(t);
+    osc.stop(t + 0.65);
+  });
+}
+
+// Special Gold fanfare
+export function playGold() {
+  const ctx = getAudioContext();
+  if (!ctx || isMuted) return;
+  const now = ctx.currentTime;
+  const chords = [
+    { time: 0.0, freqs: [523.25, 659.25, 783.99] },
+    { time: 0.12, freqs: [659.25, 783.99, 1046.5] },
+    { time: 0.26, freqs: [783.99, 1046.5, 1318.51] },
+    { time: 0.42, freqs: [1046.5, 1318.51, 1567.98, 2093.0] }
+  ];
+  chords.forEach(({ time, freqs }) => {
+    freqs.forEach(f => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = now + time;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, t);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.18, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start(t);
+      osc.stop(t + 0.6);
+    });
+  });
+}
+
+// Laugh pop bounce
+export function playLaugh() {
+  const ctx = getAudioContext();
+  if (!ctx || isMuted) return;
+  const now = ctx.currentTime;
+  for (let i = 0; i < 3; i++) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const t = now + i * 0.08;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(450 + i * 120, t);
+    osc.frequency.exponentialRampToValueAtTime(900 + i * 80, t + 0.06);
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start(t);
+    osc.stop(t + 0.08);
+  }
+}

@@ -38,57 +38,107 @@ export function createSummaryCard({ onDownloadComplete = () => {} } = {}) {
     ctx.beginPath(); ctx.roundRect(34, 34, 892, 1212, 24); ctx.stroke();
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 30px sans-serif';
-    ctx.fillText('TWITCH BLOOM & JUNKYARD', 480, 100);
-    ctx.fillStyle = '#f8fafc'; ctx.font = '900 56px sans-serif';
-    ctx.fillText('오늘의 방송 결산 카드', 480, 175);
-    const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
-    ctx.fillStyle = '#94a3b8'; ctx.font = '500 24px sans-serif';
-    ctx.fillText(dateStr, 480, 225);
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 28px sans-serif';
+    ctx.fillText('TWITCH BLOOM & JUNKYARD', 480, 85);
+    ctx.fillStyle = '#f8fafc'; ctx.font = '900 52px sans-serif';
+    ctx.fillText('오늘의 방송 결산 카드', 480, 150);
 
+    // Dynamic Title based on Flower vs Trash ratio
+    const activeFlowers = stats.activeFlowers || 0;
+    const currentTrash = stats.currentTrash || 0;
+    const totalItems = activeFlowers + currentTrash;
+    let rankTitle = '🌿 쓰레기통 옆에 피어난 야생화 구역';
+    let titleColor = '#4ade80';
+
+    if (totalItems > 0) {
+      const flowerRatio = activeFlowers / totalItems;
+      if (flowerRatio >= 0.8) {
+        rankTitle = '🌺 요정들이 노니는 1급수 비밀의 화원';
+        titleColor = '#f472b6';
+      } else if (flowerRatio <= 0.2) {
+        rankTitle = '🗑️ 피자 냄새 진동하는 혼돈의 폐기물 매립지';
+        titleColor = '#fb923c';
+      }
+    }
+
+    // Title badge
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath(); ctx.roundRect(100, 180, 760, 56, 28); ctx.fill();
+    ctx.strokeStyle = titleColor; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = titleColor; ctx.font = 'bold 26px sans-serif';
+    ctx.fillText(rankTitle, 480, 218);
+
+    // Stats Grid 4 Boxes
     const boxes = [
-      { label: '활성 꽃', val: `${stats.activeFlowers || 0} 송이`, icon: '🌸', col: '#f472b6' },
-      { label: '물주기', val: `${stats.totalWatered || 0} 회`, icon: '💧', col: '#38bdf8' },
-      { label: '투척 쓰레기', val: `${stats.totalTrash || 0} 개`, icon: '🥫', col: '#fb923c' },
+      { label: '활성 꽃 송이', val: `${activeFlowers} 송이`, icon: '🌸', col: '#f472b6' },
+      { label: '투척된 쓰레기', val: `${stats.totalTrash || 0} 개`, icon: '🥫', col: '#fb923c' },
+      { label: '물주기 & 햇빛', val: `${(stats.totalWatered || 0) + (stats.totalSunned || 0)} 회`, icon: '💧', col: '#38bdf8' },
       { label: '청소된 쓰레기', val: `${stats.totalCleaned || 0} 개`, icon: '✨', col: '#4ade80' }
     ];
     boxes.forEach((b, i) => {
-      const bx = 80 + (i % 2) * 410, by = 280 + Math.floor(i / 2) * 175;
+      const bx = 80 + (i % 2) * 410, by = 260 + Math.floor(i / 2) * 155;
       ctx.fillStyle = 'rgba(30, 41, 59, 0.7)';
-      ctx.beginPath(); ctx.roundRect(bx, by, 390, 150, 18); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(bx, by, 390, 135, 18); ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 2; ctx.stroke();
       ctx.textAlign = 'left';
-      ctx.font = '32px sans-serif'; ctx.fillText(b.icon, bx + 22, by + 56);
-      ctx.fillStyle = '#94a3b8'; ctx.font = '600 24px sans-serif';
-      ctx.fillText(b.label, bx + 70, by + 52);
-      ctx.fillStyle = b.col; ctx.font = 'bold 42px sans-serif';
-      ctx.fillText(b.val, bx + 24, by + 115);
+      ctx.font = '30px sans-serif'; ctx.fillText(b.icon, bx + 20, by + 50);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '600 22px sans-serif';
+      ctx.fillText(b.label, bx + 64, by + 48);
+      ctx.fillStyle = b.col; ctx.font = 'bold 38px sans-serif';
+      ctx.fillText(b.val, bx + 22, by + 104);
     });
 
+    // MVP Dual Spotlight
+    const mvpTopY = 590;
     ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-    ctx.beginPath(); ctx.roundRect(80, 660, 800, 490, 22); ctx.fill();
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)'; ctx.lineWidth = 3; ctx.stroke();
-    ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 32px sans-serif';
-    ctx.textAlign = 'center'; ctx.fillText('🏆 가든 & 정크야드 기여 랭킹 🏆', 480, 715);
+    ctx.beginPath(); ctx.roundRect(80, mvpTopY, 800, 120, 18); ctx.fill();
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)'; ctx.lineWidth = 2; ctx.stroke();
+
+    // Top Gardener
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 20px sans-serif';
+    ctx.fillText('👑 최고 정원사 MVP', 110, mvpTopY + 42);
+    ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 28px sans-serif';
+    ctx.fillText(stats.topGardener || '정원 꿈나무', 110, mvpTopY + 84);
+
+    // Top Troll
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fb923c'; ctx.font = 'bold 20px sans-serif';
+    ctx.fillText('🍕 최고 트롤러 MVP', 850, mvpTopY + 42);
+    ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 28px sans-serif';
+    ctx.fillText(stats.topTroll || '착한 시청자단', 850, mvpTopY + 84);
+
+    // Contribution Ranking Table
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+    ctx.beginPath(); ctx.roundRect(80, 730, 800, 430, 22); ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 28px sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText('🏆 시청자 티키타카 랭킹 🏆', 480, 775);
 
     const users = stats.topUsers || [];
     if (users.length === 0) {
-      ctx.fillStyle = '#64748b'; ctx.font = '28px sans-serif';
-      ctx.fillText('아직 참여한 시청자가 없습니다.', 480, 910);
+      ctx.fillStyle = '#64748b'; ctx.font = '24px sans-serif';
+      ctx.fillText('아직 참여한 시청자가 없습니다.', 480, 930);
     } else {
       users.slice(0, 5).forEach((u, i) => {
-        const ry = 780 + i * 65;
+        const ry = 830 + i * 58;
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : ` ${i + 1}.`;
         ctx.textAlign = 'left';
-        ctx.fillStyle = i === 0 ? '#fbbf24' : '#e2e8f0'; ctx.font = 'bold 26px sans-serif';
+        ctx.fillStyle = i === 0 ? '#fbbf24' : '#e2e8f0'; ctx.font = 'bold 24px sans-serif';
         ctx.fillText(`${medal} ${u.user}`, 110, ry);
         ctx.textAlign = 'right';
-        ctx.fillStyle = '#94a3b8'; ctx.font = '22px sans-serif';
-        ctx.fillText(`물 ${u.water || 0} / 청소 ${u.clean || 0} / 쓰레기 ${u.trash || 0} (총 ${u.total}회)`, 850, ry);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '20px sans-serif';
+        ctx.fillText(`가꿈 ${((u.water || 0) + (u.sun || 0) + (u.clean || 0))}회 / 쓰레기 ${u.trash || 0}회`, 850, ry);
       });
     }
-    ctx.fillStyle = '#475569'; ctx.font = '500 22px sans-serif';
-    ctx.textAlign = 'center'; ctx.fillText('Twitch Bloom & Junkyard • Open Source Interactive Overlay', 480, 1205);
+
+    // Footer with Session ID
+    ctx.fillStyle = '#64748b'; ctx.font = '500 19px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Codex Session ID: 01a17ae2-0503-7173-ace9-d83891dec75a', 480, 1195);
+    ctx.fillStyle = '#475569'; ctx.font = '500 17px sans-serif';
+    ctx.fillText('OpenAI Codex x TwitchCon Hackathon • Twitch Bloom & Junkyard', 480, 1225);
+
     texture.needsUpdate = true;
   }
 

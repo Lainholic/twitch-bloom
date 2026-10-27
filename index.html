@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch Bloom & Junkyard - OBS Overlay</title>
+  <title>Twitch Bloom & Junkyard - OBS Overlay & Interactive Garden</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
   <style>
     * { box-sizing: border-box; }
@@ -13,58 +13,139 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       user-select: none;
     }
+
+    /* Mock Game Screen Background Container */
+    #mock-game-screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 1; transition: opacity 0.3s ease;
+      background: #090d16;
+    }
+    #mock-game-screen.hidden { opacity: 0; display: none; }
+    #mock-game-canvas { width: 100%; height: 100%; display: block; }
+
+    /* Streamer Webcam Mockup (Top-Left) */
+    #mock-webcam {
+      position: absolute; top: 68px; left: 24px; width: 220px; height: 135px;
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      border: 2px solid #6366f1; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #e0e7ff; z-index: 5; overflow: hidden;
+    }
+    .webcam-badge {
+      position: absolute; top: 6px; left: 8px; font-size: 10px; font-weight: 800;
+      background: #ef4444; color: #fff; padding: 2px 6px; border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .webcam-avatar {
+      font-size: 44px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+      animation: avatarFloat 2.5s ease-in-out infinite alternate;
+    }
+    @keyframes avatarFloat { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+    .webcam-name { font-size: 11px; font-weight: 700; color: #a5b4fc; margin-top: 4px; }
+
+    /* Mock In-Game Twitch Chat (Bottom-Right, Semi-Transparent) */
+    #mock-chat {
+      position: absolute; bottom: 85px; right: 24px; width: 260px; height: 210px;
+      background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px;
+      padding: 10px; display: flex; flex-direction: column; justify-content: flex-end;
+      overflow: hidden; z-index: 5; pointer-events: none;
+    }
+    .mock-chat-header {
+      font-size: 11px; font-weight: 800; color: #a855f7; margin-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 4px;
+    }
+    .mock-chat-messages {
+      display: flex; flex-direction: column; gap: 4px; font-size: 12px;
+      overflow: hidden; max-height: 170px;
+    }
+    .chat-msg {
+      display: flex; gap: 6px; align-items: baseline; word-break: break-all;
+      animation: chatFadeIn 0.2s ease-out;
+    }
+    @keyframes chatFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .chat-user { font-weight: 700; font-size: 11px; }
+    .chat-text { color: #f1f5f9; }
+
+    /* Three.js Garden & Junkyard Canvas */
     #garden-canvas {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: block; pointer-events: none;
+      display: block; pointer-events: none; z-index: 10;
     }
+
+    /* Top Floating Control Toolbar */
     #ui-container {
-      position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 32px); max-width: 1280px;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 14px; padding: 12px 18px;
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 28px); max-width: 1420px;
+      background: rgba(15, 23, 42, 0.90); backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px; padding: 10px 16px;
       display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-      gap: 12px; color: #f1f5f9; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      gap: 10px; color: #f1f5f9; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       z-index: 100; transition: opacity 0.3s ease, transform 0.3s ease;
     }
     #ui-container.hidden {
       opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-20px);
     }
-    .ui-group { display: flex; align-items: center; gap: 8px; }
-    .ui-title { font-weight: 700; font-size: 14px; color: #38bdf8; letter-spacing: 0.5px; margin-right: 4px; }
+    .ui-group { display: flex; align-items: center; gap: 6px; }
+    .ui-title { font-weight: 800; font-size: 13px; color: #38bdf8; letter-spacing: 0.5px; margin-right: 4px; }
     input[type="text"] {
-      background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 6px; color: #fff; padding: 6px 10px; font-size: 13px; outline: none; width: 140px;
+      background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px; color: #fff; padding: 5px 10px; font-size: 13px; outline: none; width: 130px;
     }
     input[type="text"]:focus { border-color: #38bdf8; }
     button {
-      background: #1e293b; color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+      background: #1e293b; color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
       display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s ease;
     }
-    button:hover { background: #334155; border-color: rgba(255, 255, 255, 0.3); }
+    button:hover { background: #334155; border-color: rgba(255, 255, 255, 0.35); }
     button.btn-primary { background: #0284c7; border-color: #38bdf8; }
     button.btn-primary:hover { background: #0369a1; }
-    button.btn-water { background: #0369a1; border-color: #38bdf8; }
+    button.btn-water { background: #0284c7; border-color: #38bdf8; }
+    button.btn-sun { background: #d97706; border-color: #fbbf24; }
     button.btn-trash { background: #c2410c; border-color: #fb923c; }
     button.btn-clean { background: #15803d; border-color: #4ade80; }
+    button.btn-gold { background: #854d0e; border-color: #facc15; }
     button.btn-card { background: #6d28d9; border-color: #c084fc; }
+    button.btn-mock { background: #334155; border-color: #94a3b8; }
+    button.btn-mock.active { background: #4f46e5; border-color: #818cf8; color: #fff; }
+
     .status-badge {
-      display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
-      padding: 4px 8px; border-radius: 20px; background: rgba(51, 65, 85, 0.6);
+      display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
+      padding: 3px 8px; border-radius: 20px; background: rgba(51, 65, 85, 0.6);
     }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
     .status-dot.connected { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
     .status-dot.connecting { background: #eab308; box-shadow: 0 0 8px #eab308; }
     .status-dot.rejected, .status-dot.error { background: #ef4444; }
-    .shortcut-hint { font-size: 11px; color: #94a3b8; margin-left: 6px; }
+    .shortcut-hint { font-size: 11px; color: #94a3b8; margin-left: 4px; }
   </style>
 </head>
 <body>
+  <!-- Mock Game Screen (Toggleable background for development/demo recording) -->
+  <div id="mock-game-screen">
+    <canvas id="mock-game-canvas"></canvas>
+    <div id="mock-webcam">
+      <div class="webcam-badge">🔴 LIVE 60FPS</div>
+      <div class="webcam-avatar">🎮</div>
+      <div class="webcam-name">STREAMER_CAM</div>
+    </div>
+    <div id="mock-chat">
+      <div class="mock-chat-header">💬 LIVE TWITCH CHAT</div>
+      <div id="mock-chat-list" class="mock-chat-messages">
+        <div class="chat-msg"><span class="chat-user" style="color:#38bdf8;">system:</span> <span class="chat-text">방송이 시작되었습니다!</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js Overlay Garden Canvas (100% Transparent, Only Corners & Bottom Edges Populated) -->
   <canvas id="garden-canvas"></canvas>
 
+  <!-- Floating Control UI -->
   <div id="ui-container">
-    <!-- Twitch IRC Section -->
+    <!-- Twitch Connection Section -->
     <div class="ui-group">
       <span class="ui-title">🌿 TWITCH</span>
       <input type="text" id="channel-input" placeholder="채널명 (예: shroud)" />
@@ -76,26 +157,37 @@
       </div>
     </div>
 
-    <!-- Local Demo Controls -->
+    <!-- Background Mock Toggle -->
     <div class="ui-group">
-      <span class="ui-title">🎮 TEST</span>
-      <button id="btn-test-water" class="btn-water">💧 !water</button>
-      <button id="btn-test-trash" class="btn-trash">🥫 !trash</button>
-      <button id="btn-test-clean" class="btn-clean">✨ !clean</button>
-      <button id="btn-auto-demo" class="btn-primary" style="background:#059669; border-color:#34d399;">🎬 자동 시연</button>
+      <button id="btn-toggle-mock" class="btn-mock active">🎮 목업 게임 화면 ON</button>
+    </div>
+
+    <!-- Interactive Test Buttons -->
+    <div class="ui-group">
+      <span class="ui-title">✨ TEST</span>
+      <button id="btn-test-water" class="btn-water">💧 !물</button>
+      <button id="btn-test-sun" class="btn-sun">☀️ !햇빛</button>
+      <button id="btn-test-trash" class="btn-trash">🥫 !쓰레기</button>
+      <button id="btn-test-clean" class="btn-clean">🧹 !청소</button>
+      <button id="btn-test-gold" class="btn-gold">✨ !비료</button>
+      <button id="btn-test-laugh">😂 ㅋㅋㅋㅋ</button>
+    </div>
+
+    <!-- Demo & Snapshot Card Controls -->
+    <div class="ui-group">
+      <button id="btn-auto-demo" class="btn-primary" style="background:#059669; border-color:#34d399;">🎬 시뮬레이터 (100명 난투)</button>
       <button id="btn-toggle-names">🏷️ 닉네임 ON</button>
       <button id="btn-toggle-card" class="btn-card">🏆 결산 카드</button>
       <button id="btn-download-png" style="display:none;">💾 PNG 저장</button>
     </div>
 
-    <!-- Audio & OBS Display Controls -->
+    <!-- Audio & OBS Controls -->
     <div class="ui-group">
       <button id="btn-mute">🔊 소리 켬</button>
-      <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" style="width: 70px;" />
+      <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" style="width: 60px;" />
       <button id="btn-hide-ui">OBS 숨김 <span class="shortcut-hint">[H]</span></button>
     </div>
   </div>
-
 
   <script type="module">
     import { createGarden } from './src/garden.mjs';
@@ -105,6 +197,7 @@
     import { createDemoSimulation } from './src/demo-sim.mjs';
     import * as audio from './src/audio.mjs';
 
+    // Initialize Core Modules
     const garden = createGarden({ autoPlant: true });
     const canvas = document.getElementById('garden-canvas');
     const rendererApp = createRenderer({ canvas });
@@ -114,88 +207,248 @@
     });
     rendererApp.scene.add(summaryCard.group);
 
-    const origAnimate = rendererApp.renderer.render.bind(rendererApp.renderer);
-    let lastTime = performance.now();
-    rendererApp.renderer.render = function(scene, camera) {
-      const now = performance.now();
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
-      if (summaryCard.isVisible()) summaryCard.update(dt);
-      origAnimate(scene, camera);
-    };
+    // --- Mock Game Screen Animation Loop (Dungeon / Cyberpunk FPS Room) ---
+    const mockCanvas = document.getElementById('mock-game-canvas');
+    const mockCtx = mockCanvas.getContext('2d');
+    let mockActive = true;
 
+    function resizeMock() {
+      mockCanvas.width = window.innerWidth;
+      mockCanvas.height = window.innerHeight;
+    }
+    resizeMock();
+    window.addEventListener('resize', resizeMock);
+
+    function drawMockGame(time) {
+      if (!mockActive) return;
+      const w = mockCanvas.width, h = mockCanvas.height;
+      mockCtx.clearRect(0, 0, w, h);
+
+      // Dark Sci-Fi / Dungeon background
+      const grad = mockCtx.createRadialGradient(w / 2, h / 2, 80, w / 2, h / 2, Math.max(w, h) * 0.75);
+      grad.addColorStop(0, '#1e1b4b');
+      grad.addColorStop(0.5, '#0f172a');
+      grad.addColorStop(1, '#05070e');
+      mockCtx.fillStyle = grad;
+      mockCtx.fillRect(0, 0, w, h);
+
+      // Moving floor perspective grid
+      mockCtx.strokeStyle = 'rgba(99, 102, 241, 0.22)';
+      mockCtx.lineWidth = 1.5;
+      const horizonY = h * 0.52;
+
+      // Perspective lines
+      for (let x = -w * 0.5; x <= w * 1.5; x += 120) {
+        mockCtx.beginPath();
+        mockCtx.moveTo(w / 2, horizonY);
+        mockCtx.lineTo(x, h);
+        mockCtx.stroke();
+      }
+
+      // Moving horizontal lines
+      const speed = (time * 0.08) % 40;
+      for (let y = horizonY + speed; y < h; y += 40) {
+        const norm = (y - horizonY) / (h - horizonY);
+        mockCtx.strokeStyle = `rgba(99, 102, 241, ${0.1 + norm * 0.35})`;
+        mockCtx.beginPath();
+        mockCtx.moveTo(0, y);
+        mockCtx.lineTo(w, y);
+        mockCtx.stroke();
+      }
+
+      // Central FPS Reticle / Crosshair (Safe Zone Visual indicator)
+      const cx = w / 2, cy = h / 2;
+      mockCtx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+      mockCtx.lineWidth = 2;
+      mockCtx.beginPath();
+      mockCtx.arc(cx, cy, 26, 0, Math.PI * 2);
+      mockCtx.stroke();
+
+      mockCtx.beginPath();
+      mockCtx.moveTo(cx - 36, cy); mockCtx.lineTo(cx - 10, cy);
+      mockCtx.moveTo(cx + 10, cy); mockCtx.lineTo(cx + 36, cy);
+      mockCtx.moveTo(cx, cy - 36); mockCtx.lineTo(cx, cy - 10);
+      mockCtx.moveTo(cx, cy + 10); mockCtx.lineTo(cx, cy + 36);
+      mockCtx.stroke();
+
+      // Safe Zone hint text
+      mockCtx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+      mockCtx.font = 'bold 12px monospace';
+      mockCtx.textAlign = 'center';
+      mockCtx.fillText('GAMEPLAY SAFE ZONE (NO OVERLAY)', cx, cy + 50);
+
+      // In-game HUD: HP Bar (Bottom Center-Left)
+      mockCtx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+      mockCtx.fillRect(cx - 240, h - 55, 180, 18);
+      mockCtx.fillStyle = '#ef4444';
+      mockCtx.fillRect(cx - 238, h - 53, 150, 14);
+      mockCtx.fillStyle = '#fff';
+      mockCtx.font = 'bold 10px sans-serif';
+      mockCtx.fillText('HP  85 / 100', cx - 150, h - 42);
+
+      // In-game HUD: AMMO (Bottom Center-Right)
+      mockCtx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+      mockCtx.fillRect(cx + 60, h - 55, 180, 18);
+      mockCtx.fillStyle = '#eab308';
+      mockCtx.fillRect(cx + 62, h - 53, 130, 14);
+      mockCtx.fillStyle = '#fff';
+      mockCtx.fillText('AMMO  26 / 30', cx + 150, h - 42);
+    }
+
+    // --- Mock Chat Feed Helper ---
+    const mockChatList = document.getElementById('mock-chat-list');
+    function addMockChatMessage(user, text) {
+      if (!mockChatList) return;
+      const msg = document.createElement('div');
+      msg.className = 'chat-msg';
+      const userSpan = document.createElement('span');
+      userSpan.className = 'chat-user';
+      // Pick dynamic color from username
+      let hash = 0;
+      for (let i = 0; i < user.length; i++) hash = user.charCodeAt(i) + ((hash << 5) - hash);
+      const hue = Math.abs(hash) % 360;
+      userSpan.style.color = `hsl(${hue}, 85%, 65%)`;
+      userSpan.textContent = user + ':';
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'chat-text';
+      textSpan.textContent = text;
+
+      msg.appendChild(userSpan);
+      msg.appendChild(textSpan);
+      mockChatList.appendChild(msg);
+
+      if (mockChatList.children.length > 7) {
+        mockChatList.removeChild(mockChatList.children[0]);
+      }
+      mockChatList.scrollTop = mockChatList.scrollHeight;
+    }
+
+    // --- Core Event Handler (Dispatches to Garden, Audio, and Renderer) ---
     function handleEvent(event, now = Date.now()) {
       audio.initAudio();
       const res = garden.apply(event, now);
+      if (event.user && event.text) {
+        addMockChatMessage(event.user, event.text);
+      }
+
       if (res.accepted) {
-        if (res.command === 'trash') audio.playTrash();
-        else if (res.command === 'clean') audio.playClean();
-        else if (res.command === 'water' || res.command === 'plant' || res.command === 'bloom') {
-          if (res.refreshed || res.command === 'bloom') audio.playBloom();
-          else audio.playWater();
+        if (res.command === 'trash') {
+          audio.playTrash();
+        } else if (res.command === 'clean') {
+          audio.playClean();
+          rendererApp.triggerCleanEffect();
+        } else if (res.command === 'water') {
+          audio.playWater();
+          rendererApp.triggerWaterEffect();
+        } else if (res.command === 'sun') {
+          audio.playSun();
+          rendererApp.triggerSunEffect();
+        } else if (res.command === 'gold') {
+          audio.playGold();
+          rendererApp.triggerGoldEffect();
+        } else if (res.command === 'laugh') {
+          audio.playLaugh();
+          rendererApp.triggerLaughEffect();
         }
-        rendererApp.syncGarden(garden.snapshot());
-        if (summaryCard.isVisible()) summaryCard.show(garden.getStats());
+
+        // Sync flowers and trash
+        rendererApp.syncFlowers(garden.getFlowers());
+        rendererApp.syncTrash(garden.getTrash());
+
+        if (summaryCard.isVisible()) {
+          summaryCard.show(garden.getStats());
+        }
       }
       return res;
     }
 
-    // Demo Simulation Engine
+    // --- Main Render Loop ---
+    let lastTime = performance.now();
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      // Draw background mock game screen
+      drawMockGame(now);
+
+      // Update 3D Garden, Physics & Particles
+      rendererApp.update(dt);
+      if (summaryCard.isVisible()) {
+        summaryCard.update(dt);
+      }
+
+      rendererApp.renderer.render(rendererApp.scene, rendererApp.camera);
+    }
+    requestAnimationFrame(animate);
+
+    // --- Button Bindings & Simulation ---
+    const btnToggleMock = document.getElementById('btn-toggle-mock');
+    const mockGameScreen = document.getElementById('mock-game-screen');
+    btnToggleMock.addEventListener('click', () => {
+      mockActive = !mockActive;
+      if (mockActive) {
+        mockGameScreen.classList.remove('hidden');
+        btnToggleMock.classList.add('active');
+        btnToggleMock.textContent = '🎮 목업 게임 화면 ON';
+      } else {
+        mockGameScreen.classList.add('hidden');
+        btnToggleMock.classList.remove('active');
+        btnToggleMock.textContent = '👻 투명 OBS 모드';
+      }
+    });
+
+    let localIdx = 1;
+    function getNextViewer() { return 'viewer_' + (localIdx++ % 12 + 1); }
+
+    document.getElementById('btn-test-water').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!물' });
+    });
+    document.getElementById('btn-test-sun').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!햇빛' });
+    });
+    document.getElementById('btn-test-trash').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!피자' });
+    });
+    document.getElementById('btn-test-clean').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!청소' });
+    });
+    document.getElementById('btn-test-gold').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!비료' });
+    });
+    document.getElementById('btn-test-laugh').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: 'ㅋㅋㅋㅋ' });
+    });
+
+    // Demo Simulation
     const btnAutoDemo = document.getElementById('btn-auto-demo');
     const demoSim = createDemoSimulation({
       handleEvent,
       summaryCard,
       getStats: () => garden.getStats(),
-      onStep: ({ starting, finished, stopped, step, currentStep, total }) => {
+      onStep: ({ starting, finished, stopped }) => {
         if (starting) {
-          btnAutoDemo.textContent = '⏹ 시연 정지';
+          btnAutoDemo.textContent = '⏹ 시뮬 정지';
           btnAutoDemo.style.background = '#e11d48';
           btnAutoDemo.style.borderColor = '#fb7185';
         } else if (finished || stopped) {
-          btnAutoDemo.textContent = '🎬 자동 시연';
+          btnAutoDemo.textContent = '🎬 시뮬레이터 (100명 난투)';
           btnAutoDemo.style.background = '#059669';
           btnAutoDemo.style.borderColor = '#34d399';
         }
       }
     });
-
     btnAutoDemo.addEventListener('click', () => {
       audio.initAudio();
-      if (demoSim.isRunning()) {
-        demoSim.stop();
-      } else {
-        demoSim.start();
-      }
+      if (demoSim.isRunning()) demoSim.stop();
+      else demoSim.start();
     });
 
-    // Nameplate Toggle
-    const btnToggleNames = document.getElementById('btn-toggle-names');
-    let namesVisible = true;
-    btnToggleNames.addEventListener('click', () => {
-      namesVisible = !namesVisible;
-      rendererApp.setNameplatesVisible(namesVisible);
-      btnToggleNames.textContent = namesVisible ? '🏷️ 닉네임 ON' : '🏷️ 닉네임 OFF';
-      btnToggleNames.style.color = namesVisible ? '#f8fafc' : '#94a3b8';
-    });
-
-    window.twitchBloom = { garden, handleEvent, summaryCard, rendererApp, audio, demoSim };
-
-    let localIdx = 1;
-    function getNextViewer() { return 'viewer_' + (localIdx++ % 6 + 1); }
-
-    document.getElementById('btn-test-water').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!water' });
-    });
-    document.getElementById('btn-test-trash').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!trash' });
-    });
-    document.getElementById('btn-test-clean').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!clean' });
-    });
-
+    // Summary Card Controls
     const btnToggleCard = document.getElementById('btn-toggle-card');
     const btnDownloadPng = document.getElementById('btn-download-png');
-
     btnToggleCard.addEventListener('click', () => {
       audio.initAudio();
       if (summaryCard.isVisible()) {
@@ -209,36 +462,37 @@
         btnDownloadPng.style.display = 'inline-flex';
       }
     });
-
     btnDownloadPng.addEventListener('click', () => {
       summaryCard.downloadPNG('twitch-bloom-summary.png');
     });
 
+    // Nameplate Toggle
+    const btnToggleNames = document.getElementById('btn-toggle-names');
+    let namesVisible = true;
+    btnToggleNames.addEventListener('click', () => {
+      namesVisible = rendererApp.toggleNameplates();
+      btnToggleNames.textContent = namesVisible ? '🏷️ 닉네임 ON' : '🏷️ 닉네임 OFF';
+      btnToggleNames.style.color = namesVisible ? '#f8fafc' : '#94a3b8';
+    });
 
     // Audio Controls
     const btnMute = document.getElementById('btn-mute');
     const volumeSlider = document.getElementById('volume-slider');
-
     btnMute.addEventListener('click', () => {
       audio.initAudio();
       const muted = !audio.getMuted();
       audio.setMuted(muted);
       btnMute.textContent = muted ? '🔇 음소거됨' : '🔊 소리 켬';
     });
-
     volumeSlider.addEventListener('input', (e) => {
       audio.initAudio();
       audio.setVolume(parseFloat(e.target.value));
     });
 
-    // OBS & UI Visibility Controls
+    // UI Toggle & Keyboard Shortcut (H)
     const uiContainer = document.getElementById('ui-container');
     const btnHideUi = document.getElementById('btn-hide-ui');
-
-    function toggleUI() {
-      uiContainer.classList.toggle('hidden');
-    }
-
+    function toggleUI() { uiContainer.classList.toggle('hidden'); }
     btnHideUi.addEventListener('click', toggleUI);
     window.addEventListener('keydown', (e) => {
       if ((e.key === 'h' || e.key === 'H') && document.activeElement?.tagName !== 'INPUT') {
@@ -246,47 +500,15 @@
       }
     });
 
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('obs') === '1' || urlParams.get('overlay') === '1') {
-      uiContainer.classList.add('hidden');
-    }
-
-    if (urlParams.get('names') === '0' || urlParams.get('nameplates') === '0') {
-      btnToggleNames.click();
-    }
-
-    if (urlParams.get('mute') === '1') {
-      btnMute.click();
-    }
-
-    const initialVolume = urlParams.get('volume');
-    if (initialVolume !== null) {
-      const volVal = Math.max(0, Math.min(1, parseFloat(initialVolume) || 0.5));
-      volumeSlider.value = volVal;
-      audio.setVolume(volVal);
-    }
-
-    if (urlParams.get('demo') === '1' || urlParams.get('autodemo=1') || urlParams.get('autodemo') === '1') {
-      setTimeout(() => {
-        btnAutoDemo.click();
-      }, 800);
-    }
-
-    const defaultChannel = urlParams.get('channel');
-    if (defaultChannel) {
-      document.getElementById('channel-input').value = defaultChannel;
-    }
-
-    // Twitch IRC Connection Handling
+    // Twitch IRC Connection
     const channelInput = document.getElementById('channel-input');
     const btnConnect = document.getElementById('btn-connect');
     const btnDisconnect = document.getElementById('btn-disconnect');
     const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('status-text');
-
     let twitchDisconnect = null;
 
-    function setStatus(status, detail) {
+    function setStatus(status) {
       statusDot.className = 'status-dot ' + status;
       if (status === 'connected') {
         statusText.textContent = '연결됨';
@@ -295,8 +517,6 @@
         channelInput.disabled = true;
       } else if (status === 'connecting') {
         statusText.textContent = '접속 중...';
-      } else if (status === 'reconnecting') {
-        statusText.textContent = '재연결 중...';
       } else if (status === 'rejected') {
         statusText.textContent = '인증 거부됨';
         btnConnect.style.display = 'inline-flex';
@@ -312,33 +532,41 @@
 
     btnConnect.addEventListener('click', () => {
       const channel = channelInput.value.trim();
-      if (!channel) {
-        alert('채널명을 입력해 주세요.');
-        return;
-      }
+      if (!channel) { alert('채널명을 입력해 주세요.'); return; }
       try {
         if (twitchDisconnect) twitchDisconnect();
         twitchDisconnect = connectTwitch({
           channel,
           onChat: (msg) => { handleEvent(msg); },
-          onStatus: (st, detail) => { setStatus(st, detail); }
+          onStatus: (st) => { setStatus(st); }
         });
-      } catch (err) {
-        alert('연결 설정 오류: ' + err.message);
-      }
+      } catch (err) { alert('연결 설정 오류: ' + err.message); }
     });
 
     btnDisconnect.addEventListener('click', () => {
-      if (twitchDisconnect) {
-        twitchDisconnect();
-        twitchDisconnect = null;
-      }
+      if (twitchDisconnect) { twitchDisconnect(); twitchDisconnect = null; }
       setStatus('disconnected');
     });
 
-    if (defaultChannel) {
+    // URL Parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('obs') === '1' || urlParams.get('overlay') === '1') {
+      uiContainer.classList.add('hidden');
+      btnToggleMock.click();
+    }
+    if (urlParams.get('mock') === '0') {
+      btnToggleMock.click();
+    }
+    if (urlParams.get('demo') === '1' || urlParams.get('autodemo') === '1') {
+      setTimeout(() => { btnAutoDemo.click(); }, 600);
+    }
+    const defCh = urlParams.get('channel');
+    if (defCh) {
+      channelInput.value = defCh;
       btnConnect.click();
     }
+
+    window.twitchBloom = { garden, handleEvent, summaryCard, rendererApp, audio, demoSim };
   </script>
 </body>
 </html>
