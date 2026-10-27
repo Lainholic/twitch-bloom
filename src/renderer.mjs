@@ -4,7 +4,7 @@
 // ============================================================================
 
 const ASSET_SRCS = {
-  ivyVine: './assets/ivy_vine.png',
+  ivyVine: './assets/ivy_vine.png?v=3',
   trashCan: './assets/trash_can.png',
   fenceWatering: './assets/fence_watering.png',
   grassBase: './assets/grass_base.png',
@@ -82,60 +82,69 @@ export function createRenderer({ canvas }) {
   let nameplatesEnabled = true;
   // Static vine configs outside renderFrame to eliminate per-frame GC allocations (Sol 6.1 P1 audit fix)
   const STATIC_LEFT_VINES = [
-    { x: 36, y: 12,  s: 2.1, r: -0.04, flip: false, minG: 0.0, seed: 1.1 },
-    { x: 30, y: 50,  s: 2.0, r: 0.06,  flip: true,  minG: 0.1, seed: 2.3 },
-    { x: 35, y: 88,  s: 2.2, r: -0.05, flip: false, minG: 0.2, seed: 3.5 },
-    { x: 28, y: 126, s: 2.1, r: 0.07,  flip: true,  minG: 0.4, seed: 4.7 },
-    { x: 34, y: 164, s: 2.0, r: -0.04, flip: false, minG: 0.6, seed: 5.9 },
-    { x: 26, y: 202, s: 2.2, r: 0.08,  flip: true,  minG: 0.9, seed: 1.7 },
-    { x: 32, y: 240, s: 2.1, r: -0.06, flip: false, minG: 1.2, seed: 2.9 },
-    { x: 28, y: 278, s: 2.0, r: 0.05,  flip: true,  minG: 1.5, seed: 4.1 },
-    { x: 34, y: 316, s: 2.2, r: -0.07, flip: false, minG: 1.8, seed: 5.3 },
-    { x: 26, y: 354, s: 2.1, r: 0.06,  flip: true,  minG: 2.1, seed: 1.5 },
-    { x: 32, y: 392, s: 2.0, r: -0.05, flip: false, minG: 2.4, seed: 2.7 },
-    { x: 28, y: 430, s: 2.2, r: 0.07,  flip: true,  minG: 2.7, seed: 3.9 },
-    { x: 34, y: 468, s: 2.1, r: -0.04, flip: false, minG: 3.0, seed: 5.1 },
-    { x: 26, y: 506, s: 2.0, r: 0.08,  flip: true,  minG: 3.3, seed: 1.3 },
-    { x: 32, y: 544, s: 2.2, r: -0.06, flip: false, minG: 3.6, seed: 2.5 },
-    { x: 28, y: 582, s: 2.1, r: 0.05,  flip: true,  minG: 3.9, seed: 3.7 },
-    { x: 33, y: 620, s: 2.0, r: -0.04, flip: false, minG: 4.2, seed: 4.9 },
+    { x: 36, y: 12, s: 2.15, r: 0, flip: false, minG: 0.0, seed: 1.1 },
+    { x: 32, y: 40, s: 2.05, r: 0, flip: true, minG: 0.18, seed: 1.5 },
+    { x: 36, y: 68, s: 2.05, r: 0, flip: false, minG: 0.36, seed: 1.9 },
+    { x: 32, y: 96, s: 2.15, r: 0, flip: true, minG: 0.54, seed: 2.3 },
+    { x: 36, y: 124, s: 2.05, r: 0, flip: false, minG: 0.72, seed: 2.7 },
+    { x: 32, y: 152, s: 2.05, r: 0, flip: true, minG: 0.9, seed: 3.1 },
+    { x: 36, y: 180, s: 2.15, r: 0, flip: false, minG: 1.08, seed: 3.5 },
+    { x: 32, y: 208, s: 2.05, r: 0, flip: true, minG: 1.26, seed: 3.9 },
+    { x: 36, y: 236, s: 2.05, r: 0, flip: false, minG: 1.44, seed: 4.3 },
+    { x: 32, y: 264, s: 2.15, r: 0, flip: true, minG: 1.62, seed: 4.7 },
+    { x: 36, y: 292, s: 2.05, r: 0, flip: false, minG: 1.8, seed: 5.1 },
+    { x: 32, y: 320, s: 2.05, r: 0, flip: true, minG: 1.98, seed: 5.5 },
+    { x: 36, y: 348, s: 2.15, r: 0, flip: false, minG: 2.16, seed: 5.9 },
+    { x: 32, y: 376, s: 2.05, r: 0, flip: true, minG: 2.34, seed: 6.3 },
+    { x: 36, y: 404, s: 2.05, r: 0, flip: false, minG: 2.52, seed: 6.7 },
+    { x: 32, y: 432, s: 2.15, r: 0, flip: true, minG: 2.7, seed: 7.1 },
+    { x: 36, y: 460, s: 2.05, r: 0, flip: false, minG: 2.88, seed: 7.5 },
+    { x: 32, y: 488, s: 2.05, r: 0, flip: true, minG: 3.06, seed: 7.9 },
+    { x: 36, y: 516, s: 2.15, r: 0, flip: false, minG: 3.24, seed: 8.3 },
+    { x: 32, y: 544, s: 2.05, r: 0, flip: true, minG: 3.42, seed: 8.7 },
+    { x: 36, y: 572, s: 2.05, r: 0, flip: false, minG: 3.6, seed: 9.1 },
+    { x: 32, y: 600, s: 2.15, r: 0, flip: true, minG: 3.78, seed: 9.5 },
+    { x: 36, y: 628, s: 2.05, r: 0, flip: false, minG: 3.96, seed: 9.9 },
   ];
 
   const STATIC_RIGHT_VINES = [
-    { offsetRight: 36, y: 12,  s: 2.1, r: 0.04,  flip: true,  minG: 0.0, seed: 1.4 },
-    { offsetRight: 30, y: 50,  s: 2.0, r: -0.06, flip: false, minG: 0.1, seed: 2.6 },
-    { offsetRight: 35, y: 88,  s: 2.2, r: 0.05,  flip: true,  minG: 0.2, seed: 3.8 },
-    { offsetRight: 28, y: 126, s: 2.1, r: -0.07, flip: false, minG: 0.4, seed: 5.0 },
-    { offsetRight: 34, y: 164, s: 2.0, r: 0.04,  flip: true,  minG: 0.6, seed: 6.2 },
-    { offsetRight: 26, y: 202, s: 2.2, r: -0.08, flip: false, minG: 0.9, seed: 1.9 },
-    { offsetRight: 32, y: 240, s: 2.1, r: 0.06,  flip: true,  minG: 1.2, seed: 3.1 },
-    { offsetRight: 28, y: 278, s: 2.0, r: -0.05, flip: false, minG: 1.5, seed: 4.3 },
-    { offsetRight: 34, y: 316, s: 2.2, r: 0.07,  flip: true,  minG: 1.8, seed: 5.5 },
-    { offsetRight: 26, y: 354, s: 2.1, r: -0.06, flip: false, minG: 2.1, seed: 1.7 },
-    { offsetRight: 32, y: 392, s: 2.0, r: 0.05,  flip: true,  minG: 2.4, seed: 2.9 },
-    { offsetRight: 28, y: 430, s: 2.2, r: -0.07, flip: false, minG: 2.7, seed: 4.1 },
-    { offsetRight: 34, y: 468, s: 2.1, r: 0.04,  flip: true,  minG: 3.0, seed: 5.3 },
-    { offsetRight: 26, y: 506, s: 2.0, r: -0.08, flip: false, minG: 3.3, seed: 1.5 },
-    { offsetRight: 32, y: 544, s: 2.2, r: 0.06,  flip: true,  minG: 3.6, seed: 2.7 },
-    { offsetRight: 28, y: 582, s: 2.1, r: -0.05, flip: false, minG: 3.9, seed: 3.9 },
-    { offsetRight: 33, y: 620, s: 2.0, r: 0.04,  flip: true,  minG: 4.2, seed: 5.1 },
+    { offsetRight: 36, y: 12, s: 2.15, r: 0, flip: true, minG: 0.0, seed: 1.3 },
+    { offsetRight: 32, y: 40, s: 2.05, r: 0, flip: false, minG: 0.18, seed: 1.7 },
+    { offsetRight: 36, y: 68, s: 2.05, r: 0, flip: true, minG: 0.36, seed: 2.1 },
+    { offsetRight: 32, y: 96, s: 2.15, r: 0, flip: false, minG: 0.54, seed: 2.5 },
+    { offsetRight: 36, y: 124, s: 2.05, r: 0, flip: true, minG: 0.72, seed: 2.9 },
+    { offsetRight: 32, y: 152, s: 2.05, r: 0, flip: false, minG: 0.9, seed: 3.3 },
+    { offsetRight: 36, y: 180, s: 2.15, r: 0, flip: true, minG: 1.08, seed: 3.7 },
+    { offsetRight: 32, y: 208, s: 2.05, r: 0, flip: false, minG: 1.26, seed: 4.1 },
+    { offsetRight: 36, y: 236, s: 2.05, r: 0, flip: true, minG: 1.44, seed: 4.5 },
+    { offsetRight: 32, y: 264, s: 2.15, r: 0, flip: false, minG: 1.62, seed: 4.9 },
+    { offsetRight: 36, y: 292, s: 2.05, r: 0, flip: true, minG: 1.8, seed: 5.3 },
+    { offsetRight: 32, y: 320, s: 2.05, r: 0, flip: false, minG: 1.98, seed: 5.7 },
+    { offsetRight: 36, y: 348, s: 2.15, r: 0, flip: true, minG: 2.16, seed: 6.1 },
+    { offsetRight: 32, y: 376, s: 2.05, r: 0, flip: false, minG: 2.34, seed: 6.5 },
+    { offsetRight: 36, y: 404, s: 2.05, r: 0, flip: true, minG: 2.52, seed: 6.9 },
+    { offsetRight: 32, y: 432, s: 2.15, r: 0, flip: false, minG: 2.7, seed: 7.3 },
+    { offsetRight: 36, y: 460, s: 2.05, r: 0, flip: true, minG: 2.88, seed: 7.7 },
+    { offsetRight: 32, y: 488, s: 2.05, r: 0, flip: false, minG: 3.06, seed: 8.1 },
+    { offsetRight: 36, y: 516, s: 2.15, r: 0, flip: true, minG: 3.24, seed: 8.5 },
+    { offsetRight: 32, y: 544, s: 2.05, r: 0, flip: false, minG: 3.42, seed: 8.9 },
+    { offsetRight: 36, y: 572, s: 2.05, r: 0, flip: true, minG: 3.6, seed: 9.3 },
+    { offsetRight: 32, y: 600, s: 2.15, r: 0, flip: false, minG: 3.78, seed: 9.7 },
+    { offsetRight: 36, y: 628, s: 2.05, r: 0, flip: true, minG: 3.96, seed: 10.1 },
   ];
 
   const STATIC_CEILING_VINES = [
-    { xOffset: 80, y: 10, s: 2.2, r: 0.04, flip: false, minG: 0.0, seed: 1.5 },
-    { xOffset: 145, y: 16, s: 2.1, r: -0.05, flip: true, minG: 0.2, seed: 2.7 },
-    { xOffset: 215, y: 12, s: 2.3, r: 0.06, flip: false, minG: 0.4, seed: 3.9 },
-    { xOffset: 290, y: 18, s: 2.1, r: -0.04, flip: true, minG: 0.6, seed: 4.5 },
-    { ratio: 0.26, y: 14, s: 2.2, r: 0.05, flip: false, minG: 0.9, seed: 5.2 },
-    { ratio: 0.35, y: 20, s: 2.1, r: -0.06, flip: true, minG: 1.2, seed: 6.0 },
-    { ratio: 0.44, y: 15, s: 2.3, r: 0.04, flip: false, minG: 1.5, seed: 1.8 },
-    { ratio: 0.53, y: 22, s: 2.1, r: -0.05, flip: true, minG: 1.5, seed: 2.9 },
-    { ratio: 0.62, y: 14, s: 2.2, r: 0.06, flip: false, minG: 1.2, seed: 3.7 },
-    { ratio: 0.71, y: 20, s: 2.1, r: -0.04, flip: true, minG: 0.9, seed: 4.4 },
-    { offsetRight: 290, y: 18, s: 2.2, r: 0.05, flip: false, minG: 0.6, seed: 5.0 },
-    { offsetRight: 215, y: 12, s: 2.3, r: -0.04, flip: true, minG: 0.4, seed: 5.8 },
-    { offsetRight: 145, y: 16, s: 2.1, r: 0.05, flip: false, minG: 0.2, seed: 6.3 },
-    { offsetRight: 80, y: 10, s: 2.2, r: -0.04, flip: true, minG: 0.0, seed: 6.9 },
+    // Left Corner Canopy (Natural top-left arch, keeps center 100% open)
+    { xOffset: 45,  y: 12, s: 2.2, r: 0, flip: false, minG: 0.0, seed: 1.5 },
+    { xOffset: 95,  y: 15, s: 2.1, r: 0, flip: true,  minG: 0.1, seed: 2.7 },
+    { xOffset: 150, y: 13, s: 2.0, r: 0, flip: false, minG: 0.2, seed: 3.9 },
+    { xOffset: 210, y: 10, s: 1.8, r: 0, flip: true,  minG: 0.3, seed: 4.5 },
+
+    // Right Corner Canopy (Natural top-right arch, keeps center 100% open)
+    { offsetRight: 210, y: 10, s: 1.8, r: 0, flip: false, minG: 0.3, seed: 5.0 },
+    { offsetRight: 150, y: 13, s: 2.0, r: 0, flip: true,  minG: 0.2, seed: 5.8 },
+    { offsetRight: 95,  y: 15, s: 2.1, r: 0, flip: false, minG: 0.1, seed: 6.3 },
+    { offsetRight: 45,  y: 12, s: 2.2, r: 0, flip: true,  minG: 0.0, seed: 6.9 },
   ];
 
   const getFloorY = () => height - 35;
@@ -488,21 +497,21 @@ export function createRenderer({ canvas }) {
       const g = vineState.growth;
       const extraSway = vineState.swayBonus * Math.sin(time * 6.0);
 
-      // Left Wall cascading down (Zero-allocation static array)
-      for (let i = 0; i < STATIC_LEFT_VINES.length; i++) {
+      // Left Wall cascading down (Bottom-to-Top z-index order: upper leaves cascade over lower nodes)
+      for (let i = STATIC_LEFT_VINES.length - 1; i >= 0; i--) {
         const p = STATIC_LEFT_VINES[i];
         if (g < p.minG) continue;
         const fade = Math.min(1.0, (g - p.minG) / 0.3);
-        const sway = Math.sin(time * 1.5 + p.seed) * 0.05 + extraSway;
+        const sway = Math.sin(time * 1.5 + p.seed) * 0.03 + extraSway;
         drawSprite(images.ivyVine, p.x, p.y, p.s * fade, p.r + sway, p.flip, fade);
       }
 
-      // Right Wall cascading down (Zero-allocation static array)
-      for (let i = 0; i < STATIC_RIGHT_VINES.length; i++) {
+      // Right Wall cascading down (Bottom-to-Top z-index order)
+      for (let i = STATIC_RIGHT_VINES.length - 1; i >= 0; i--) {
         const p = STATIC_RIGHT_VINES[i];
         if (g < p.minG) continue;
         const fade = Math.min(1.0, (g - p.minG) / 0.3);
-        const sway = Math.sin(time * 1.5 + p.seed) * 0.05 + extraSway;
+        const sway = Math.sin(time * 1.5 + p.seed) * 0.03 + extraSway;
         const px = width - p.offsetRight;
         drawSprite(images.ivyVine, px, p.y, p.s * fade, p.r + sway, p.flip, fade);
       }

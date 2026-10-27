@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Python cache & artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Heavy video & media recordings
+*.webm
+*.mp4
+*.mkv
+_reports/video_recordings/
+_reports/*.webm
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup & scratch files
+*.bak
+_work/tmp/

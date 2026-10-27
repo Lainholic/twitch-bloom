@@ -3,7 +3,8 @@
 > **대회 정보**: OpenAI Codex x TwitchCon Hackathon  
 > **공식 Codex 세션 ID**: `01a17ae2-0503-7173-ace9-d83891dec75a`  
 > **마감 일시**: 2026-11-03 07:00 KST (2026-11-02 14:00 PT)  
-> **결과물 형태**: HTML5 2D Canvas 레트로 픽셀 아트 기반 투명 배경 OBS 브라우저 오버레이
+> **결과물 형태**: HTML5 2D Canvas 레트로 픽셀 아트 기반 투명 배경 OBS 브라우저 오버레이  
+> **공식 데모 영상 (YouTube)**: https://youtu.be/h_0PVTRr6I8
 
 ---
 
@@ -45,7 +46,7 @@ OpenAI Codex served as our real-time co-pilot across every layer of the stack:
 1. **Mathematical Physics & Collision Modeling**: Codex assisted in structuring vertical stacking, settling physics, and responsive viewport sizing.
 2. **High-Traffic Crowd Control Architecture**: Codex helped architect the per-user cooldowns, global throttling windows, and LRU eviction buffers.
 3. **Web Audio Synthesis**: Codex provided the frequency sweeps and gain envelope curves for procedural sound effects, eliminating external MP3 assets.
-4. **Comprehensive Unit Testing**: Generated 12 rigorous native `node:test` assertions covering IRC fragmentation, crowd throttling, LRU memory caps, and detached snapshots.
+4. **Comprehensive Unit Testing**: Generated 13 rigorous native `node:test` assertions covering IRC fragmentation, crowd throttling, LRU memory caps, detached snapshots, and recap card lifecycle.
 
 ---
 
@@ -60,14 +61,14 @@ OpenAI Codex served as our real-time co-pilot across every layer of the stack:
 | **0:30 ~ 1:00** | 시청자 닉네임과 함께 `!water` 입력으로 새싹에서 장미로 자라는 장면 | "시청자가 `!water`를 입력하면 자신의 이름표가 달린 새싹이 피어나고, 물을 줄 때마다 장미, 해바라기, 황금꽃으로 화려하게 성장합니다." | "When chatters type `!water`, their personal flower sprouts with a floating name tag, evolving across 4 procedural growth stages." |
 | **1:00 ~ 1:30** | 장난꾸러기 시청자의 `!trash` 투척 및 `!clean` 청소 시연 | "하지만 방송엔 장난도 빠질 수 없죠! `!trash`로 깡통과 바나나껍질을 던지고, 에코 시청자들이 `!clean`으로 반짝이는 별가루와 함께 청소합니다." | "Mischievous viewers can toss cans and banana peels with `!trash`, while helpful chatters sweep them clean with `!clean` and sparkling particles." |
 | **1:30 ~ 2:00** | 고트래픽 군중 제어 및 '결산 카드' 등장 연출 | "수천 명이 `ㅋㅋㅋㅋ`를 연타해도 똑똑한 군중 제어 엔진이 화면 난장판을 막아줍니다. 방송을 마칠 땐 '결산 카드'로 오늘의 MVP를 선정하고 고해상도 PNG로 간직할 수 있습니다." | "Even under massive laugh spam, our crowd control prevents screen chaos. At stream wrap-up, a recap card celebrates MVP chatters and exports high-res souvenir PNGs." |
-| **2:00 ~ 2:40** | Codex 협업 개발 과정 및 기술적 강점 브리핑 | "OpenAI Codex와 협력하여 12종의 엄격한 단위 테스트를 통과하고, 토큰 없이 채널명만 적으면 1초 만에 즉시 작동합니다!" | "Built in collaboration with OpenAI Codex, verified across 12 comprehensive unit tests, and instantly connects with zero OAuth tokens required." |
+| **2:00 ~ 2:40** | Codex 협업 개발 과정 및 기술적 강점 브리핑 | "OpenAI Codex와 협력하여 13종의 엄격한 단위 테스트를 통과하고, 토큰 없이 채널명만 적으면 1초 만에 즉시 작동합니다!" | "Built in collaboration with OpenAI Codex, verified across 13 comprehensive unit tests, and instantly connects with zero OAuth tokens required." |
 
 ---
 
 ## 3. 원클릭 실행 가이드
 
 ```powershell
-# 1. 단위 테스트 (12개 항목 전체 검증 100% ALL PASS)
+# 1. 단위 테스트 (13개 항목 전체 검증 100% ALL PASS)
 npm test
 
 # 2. 로컬 웹 서버 실행 (포트 8089)

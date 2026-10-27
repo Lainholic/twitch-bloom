@@ -1,3 +1,4 @@
+import { createSummaryCard } from '../src/summary-card.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGarden, parseCommand, flowerTraits } from '../src/garden.mjs';
@@ -265,5 +266,22 @@ test('memory capping: userActions respects MAX_USERS cap under high traffic', ()
   assert.notEqual(garden.getStats().topUsers[0].total, -999);
 });
 
+test('summary card module initializes cleanly, manages visibility, and exports interface', () => {
+  let closed = false;
+  const card = createSummaryCard({
+    onClose: () => { closed = true; }
+  });
 
+  assert.equal(card.isVisible(), false);
+  assert.equal(typeof card.show, 'function');
+  assert.equal(typeof card.hide, 'function');
+  assert.equal(typeof card.downloadPNG, 'function');
+  assert.equal(typeof card.getCanvas, 'function');
 
+  card.show({ activeFlowers: 5, currentTrash: 2 });
+  assert.equal(card.isVisible(), true);
+
+  card.hide();
+  assert.equal(card.isVisible(), false);
+  assert.equal(closed, true);
+});

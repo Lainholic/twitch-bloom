@@ -48,13 +48,13 @@
 
 ## 🚀 빠른 실행 및 검증
 
-### 1. 단위 테스트 실행 (12종 전체 검증)
+### 1. 단위 테스트 실행 (13종 전체 검증)
 ```bash
 npm test
 # 또는
 node --test tests/core.test.mjs
 ```
-*(12/12 ALL PASS — IRC 파서, 군중 제어, LRU 메모리 상한, 1/N 쓰레기 풀, 스냅샷 불변성 완벽 검증)*
+*(13/13 ALL PASS — IRC 파서, 군중 제어, LRU 메모리 상한, 1/N 쓰레기 풀, 스냅샷 불변성, 결산 카드 라이프사이클 완벽 검증)*
 
 ### 2. 로컬 웹 서버 실행
 ```bash
@@ -83,7 +83,7 @@ twitch-bloom/
 │   ├── summary-card.mjs    # 세션 일일 결산 카드 렌더링 & PNG 내보내기
 │   └── demo-sim.mjs        # 영상 녹화 및 프리뷰용 자동 시청자 시뮬레이터
 ├── tests/
-│   └── core.test.mjs       # Node.js 네이티브 12종 단위 테스트 슈트
+│   └── core.test.mjs       # Node.js 네이티브 13종 단위 테스트 슈트
 ├── _reports/               # Annie & Sol 6.1 독립 AI 교차 검수 리포트
 ├── index.html              # 메인 OBS 브라우저 소스 웹앱 및 모의 방송 HUD
 ├── package.json            # 표준 npm 패키지 매니페스트
