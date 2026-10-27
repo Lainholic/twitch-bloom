@@ -216,8 +216,29 @@ export function createRenderer({ canvas }) {
         if (posX > width - 60) posX = width - 140 + Math.random() * 80;
 
         const startY = -40 - Math.random() * 60;
-        const targetAngle = ((Math.random() - 0.5) * Math.PI) * 0.5;
-        const targetFloorOffset = (Math.random() - 0.5) * 20;
+        const targetAngle = ((Math.random() - 0.5) * Math.PI) * 0.4;
+        const targetFloorOffset = (Math.random() - 0.5) * 8;
+
+        // --- Vertical pile-up height accumulation ---
+        let baseLandingY = floorY - 14 + targetFloorOffset;
+        let highestBelowY = baseLandingY;
+        let pileCount = 0;
+
+        for (let i = 0; i < activeTrashList.length; i++) {
+          const other = activeTrashList[i];
+          if (other.isResting && Math.abs(other.x - posX) < 22) {
+            pileCount++;
+            if (other.targetY < highestBelowY) {
+              highestBelowY = other.targetY;
+            }
+          }
+        }
+
+        // Stack up to 5 layers (each layer ~10~13px)
+        let finalTargetY = baseLandingY;
+        if (pileCount > 0 && highestBelowY > floorY - 65) {
+          finalTargetY = highestBelowY - (10 + Math.random() * 3);
+        }
 
         let spriteKey = 'crushedCan';
         if (item.type === 'pizza') spriteKey = 'pizza';
@@ -239,7 +260,7 @@ export function createRenderer({ canvas }) {
 
         record = {
           id: item.id, type: item.type, spriteKey, x: posX, y: startY,
-          targetY: floorY - 14 + targetFloorOffset,
+          targetY: finalTargetY,
           vx: (Math.random() - 0.5) * 70, vy: 240 + Math.random() * 140,
           rot: Math.random() * Math.PI * 2, vRot: (Math.random() - 0.5) * 7.0,
           targetRot: targetAngle, bounceCount: 0, isResting: false,
@@ -258,6 +279,17 @@ export function createRenderer({ canvas }) {
         trashMap.delete(id);
         const idx = activeTrashList.indexOf(record);
         if (idx >= 0) activeTrashList.splice(idx, 1);
+
+        // When a bottom item is cleared, items resting above it settle down
+        for (let j = 0; j < activeTrashList.length; j++) {
+          const above = activeTrashList[j];
+          if (above.isResting && Math.abs(above.x - record.x) < 22 && above.targetY < record.targetY) {
+            above.targetY = Math.min(floorY - 14, above.targetY + 11);
+            above.isResting = false;
+            above.vy = 50;
+            above.bounceCount = 1;
+          }
+        }
       }
     }
   }
