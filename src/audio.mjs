@@ -4,7 +4,7 @@ let masterGain = null;
 let isMuted = false;
 let currentVolume = 0.5;
 
-function getAudioContext() {
+export function getAudioContext() {
   if (!audioCtx && typeof window !== 'undefined') {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return null;
@@ -12,6 +12,8 @@ function getAudioContext() {
     masterGain = audioCtx.createGain();
     masterGain.gain.setValueAtTime(isMuted ? 0 : currentVolume, audioCtx.currentTime);
     masterGain.connect(audioCtx.destination);
+    window.__bloomAudioCtx = audioCtx;
+    window.__bloomMasterGain = masterGain;
   }
   if (audioCtx && audioCtx.state === 'suspended') {
     audioCtx.resume().catch(() => {});
