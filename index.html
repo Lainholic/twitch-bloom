@@ -425,17 +425,14 @@
         addMockChatMessage(event.user, rawText);
       }
 
-      if (rawText.includes('ㅋㅋㅋ') || rawText.includes('ㅎㅎㅎ') || mappedText.toLowerCase() === 'lol') {
-        audio.playLaugh();
-        rendererApp.triggerLaughEffect();
-      }
-
       if (res.accepted) {
         if (res.command === 'trash') {
           audio.playTrash();
         } else if (res.command === 'clean') {
-          audio.playClean();
-          rendererApp.triggerCleanEffect();
+          if (res.cleanedCount > 0) {
+            audio.playClean();
+            rendererApp.triggerCleanEffect();
+          }
         } else if (res.command === 'water') {
           audio.playWater();
           rendererApp.triggerWaterEffect();
@@ -446,8 +443,11 @@
           audio.playGold();
           rendererApp.triggerGoldEffect();
         } else if (res.command === 'laugh') {
-          audio.playLaugh();
-          rendererApp.triggerLaughEffect();
+          // Crowd control: emit audio and visual effect only when throttle window allows
+          if (res.emitEffect) {
+            audio.playLaugh();
+            rendererApp.triggerLaughEffect();
+          }
         }
 
         // Sync flowers and trash

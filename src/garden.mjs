@@ -50,6 +50,7 @@ export function createGarden({
   capacity = 150,
   trashCapacity = 100,
   cooldownMs = 1500,
+  laughCooldownMs = 1500,
   autoPlant = true
 } = {}) {
   const flowers = new Map();
@@ -57,6 +58,8 @@ export function createGarden({
   const seen = new Set();
   let trashSeq = 0;
   let flowerSeq = 0;
+  let lastGlobalLaughTime = -10000;
+  const MAX_USERS = 500;
 
   const stats = {
     totalPlanted: 0,
@@ -70,6 +73,11 @@ export function createGarden({
 
   function trackUser(user, action, now) {
     if (!stats.userActions.has(user)) {
+      if (stats.userActions.size >= MAX_USERS) {
+        // Evict oldest user record to cap long-running memory usage
+        const oldestUser = stats.userActions.keys().next().value;
+        stats.userActions.delete(oldestUser);
+      }
       stats.userActions.set(user, {
         user,
         water: 0,
@@ -77,14 +85,20 @@ export function createGarden({
         trash: 0,
         clean: 0,
         gold: 0,
+        laugh: 0,
         total: 0,
-        lastAction: 0
+        lastAction: 0,
+        lastLaugh: 0
       });
     }
     const rec = stats.userActions.get(user);
     if (rec[action] !== undefined) rec[action]++;
-    rec.total++;
-    rec.lastAction = now;
+    if (action === 'laugh') {
+      rec.lastLaugh = now;
+    } else {
+      rec.total++;
+      rec.lastAction = now;
+    }
   }
 
   function getMVPs() {
@@ -107,7 +121,13 @@ export function createGarden({
       const list = [...flowers.values()].map(f => ({ ...f, traits: { ...f.traits } }));
       list.trash = trashItems.map(t => ({ ...t }));
       list.stats = {
-        ...stats,
+        totalPlanted: stats.totalPlanted,
+        totalWatered: stats.totalWatered,
+        totalSunned: stats.totalSunned,
+        totalTrash: stats.totalTrash,
+        totalCleaned: stats.totalCleaned,
+        totalGold: stats.totalGold,
+        userCount: stats.userActions.size,
         activeFlowers: flowers.size,
         currentTrash: trashItems.length
       };
@@ -128,7 +148,7 @@ export function createGarden({
         currentTrash: trashItems.length,
         topGardener: mvps.topGardener,
         topTroll: mvps.topTroll,
-        topUsers: [...stats.userActions.values()].sort((a, b) => b.total - a.total).slice(0, 5)
+        topUsers: [...stats.userActions.values()].sort((a, b) => b.total - a.total).slice(0, 5).map(u => ({ ...u }))
       };
     },
     apply({ user, text, id } = {}, now = Date.now()) {
@@ -146,9 +166,16 @@ export function createGarden({
       }
       const owner = user.toLowerCase();
 
-      // Laugh reaction (no cooldown, just visual/audio bounce)
+      // Laugh reaction (Crowd Control: per-user cooldown + global visual throttle)
       if (command === 'laugh') {
-        return { accepted: true, command: 'laugh', owner };
+        const u = stats.userActions.get(owner);
+        if (u && now - (u.lastLaugh || 0) < laughCooldownMs) {
+          return { accepted: false, reason: 'cooldown' };
+        }
+        trackUser(owner, 'laugh', now);
+        const shouldEmit = (now - lastGlobalLaughTime >= 1000);
+        if (shouldEmit) lastGlobalLaughTime = now;
+        return { accepted: true, command: 'laugh', owner, emitEffect: shouldEmit };
       }
 
       // Check cooldown
@@ -160,10 +187,7 @@ export function createGarden({
       // 1. Trash command
       if (command === 'trash') {
         if (trashItems.length >= trashCapacity) trashItems.shift();
-        let type = TRASH_TYPES[Math.floor(Math.random() * TRASH_TYPES.length)];
-        if (/!(?:물약|포션|potion|비료|gold|황금)/i.test(text || '')) {
-          type = 'potion';
-        }
+        const type = TRASH_TYPES[Math.floor(Math.random() * TRASH_TYPES.length)];
         // Spread evenly across the entire bottom floor line (no corner clustering!)
         const targetX = -0.88 + Math.random() * 1.76;
 

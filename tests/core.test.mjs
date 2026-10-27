@@ -156,16 +156,18 @@ test('trash and clean actions modify junkyard state and accumulate stats', () =>
   assert.ok(garden.getStats().totalCleaned >= 1);
 });
 
-test('potion and fertilizer drop as trash items', () => {
+test('potion and fertilizer drop as random trash items', () => {
   const garden = createGarden({ cooldownMs: 0 });
   const resPotion = garden.apply({ user: 'alchemist', text: '!물약' }, 0);
   assert.equal(resPotion.accepted, true);
-  assert.equal(resPotion.trash.type, 'potion');
+  assert.equal(resPotion.command, 'trash');
+  assert.ok(['pizza', 'can', 'banana', 'fishbone', 'paper', 'mushroom', 'potion'].includes(resPotion.trash.type));
   assert.equal(garden.getTrash().length, 1);
 
   const resFertilizer = garden.apply({ user: 'farmer', text: '!비료' }, 100);
   assert.equal(resFertilizer.accepted, true);
-  assert.equal(resFertilizer.trash.type, 'potion');
+  assert.equal(resFertilizer.command, 'trash');
+  assert.ok(['pizza', 'can', 'banana', 'fishbone', 'paper', 'mushroom', 'potion'].includes(resFertilizer.trash.type));
   assert.equal(garden.getTrash().length, 2);
 });
 
@@ -221,5 +223,47 @@ test('demo simulation dispatches scripted events and stops cleanly', async () =>
   await new Promise(r => setTimeout(r, 700));
   assert.equal(events.length, countAfterStop);
 });
+test('crowd control: laughter throttling and per-user cooldown prevent screen clutter', () => {
+  const garden = createGarden({ laughCooldownMs: 1500 });
+
+  // First laugh from user1 emits visual effect
+  const r1 = garden.apply({ user: 'viewer1', text: 'ㅋㅋㅋㅋㅋ' }, 0);
+  assert.equal(r1.accepted, true);
+  assert.equal(r1.emitEffect, true);
+
+  // Immediate spam from user1 is blocked by per-user cooldown
+  const r2 = garden.apply({ user: 'viewer1', text: 'ㅋㅋㅋㅋㅋ' }, 500);
+  assert.equal(r2.accepted, false);
+  assert.equal(r2.reason, 'cooldown');
+
+  // Another user laughs within 1000ms: accepted for tally, but visual effect throttled to prevent chaos
+  const r3 = garden.apply({ user: 'viewer2', text: 'lol' }, 600);
+  assert.equal(r3.accepted, true);
+  assert.equal(r3.emitEffect, false);
+
+  // After 1000ms window, next laugh from another user emits visual effect again
+  const r4 = garden.apply({ user: 'viewer3', text: 'lmao' }, 1100);
+  assert.equal(r4.accepted, true);
+  assert.equal(r4.emitEffect, true);
+});
+
+test('memory capping: userActions respects MAX_USERS cap under high traffic', () => {
+  const garden = createGarden({ cooldownMs: 0 });
+
+  // Simulate 520 distinct users chatting
+  for (let i = 0; i < 520; i++) {
+    garden.apply({ user: `user_${i}`, text: '!물' }, i * 10);
+  }
+
+  // userActions map must not grow unbounded (capped at 500)
+  assert.ok(garden.snapshot().stats.userCount <= 500);
+
+  // topUsers returned from getStats() is a safe shallow copy
+  const stats = garden.getStats();
+  const top1 = stats.topUsers[0];
+  top1.total = -999;
+  assert.notEqual(garden.getStats().topUsers[0].total, -999);
+});
+
 
 

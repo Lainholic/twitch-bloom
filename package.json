@@ -1,0 +1,23 @@
+{
+  "name": "twitch-bloom-junkyard",
+  "version": "1.0.0",
+  "description": "Retro 2D pixel art interactive OBS overlay with Twitch chat integration, dynamic garden physics, and high-traffic crowd control",
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "test": "node --test tests/core.test.mjs",
+    "start": "python -m http.server 8089"
+  },
+  "keywords": [
+    "twitch",
+    "obs-overlay",
+    "interactive",
+    "canvas-2d",
+    "pixel-art",
+    "streamer-tools",
+    "crowd-control",
+    "web-audio"
+  ],
+  "author": "Hwan",
+  "license": "MIT"
+}
