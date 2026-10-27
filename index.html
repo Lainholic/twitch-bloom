@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twitch Bloom & Junkyard - OBS Overlay</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+    }
+    #garden-canvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: block; pointer-events: none;
+    }
+    #ui-container {
+      position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 32px); max-width: 1280px;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px; padding: 12px 18px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 12px; color: #f1f5f9; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      z-index: 100; transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #ui-container.hidden {
+      opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-20px);
+    }
+    .ui-group { display: flex; align-items: center; gap: 8px; }
+    .ui-title { font-weight: 700; font-size: 14px; color: #38bdf8; letter-spacing: 0.5px; margin-right: 4px; }
+    input[type="text"] {
+      background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px; color: #fff; padding: 6px 10px; font-size: 13px; outline: none; width: 140px;
+    }
+    input[type="text"]:focus { border-color: #38bdf8; }
+    button {
+      background: #1e293b; color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s ease;
+    }
+    button:hover { background: #334155; border-color: rgba(255, 255, 255, 0.3); }
+    button.btn-primary { background: #0284c7; border-color: #38bdf8; }
+    button.btn-primary:hover { background: #0369a1; }
+    button.btn-water { background: #0369a1; border-color: #38bdf8; }
+    button.btn-trash { background: #c2410c; border-color: #fb923c; }
+    button.btn-clean { background: #15803d; border-color: #4ade80; }
+    button.btn-card { background: #6d28d9; border-color: #c084fc; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+      padding: 4px 8px; border-radius: 20px; background: rgba(51, 65, 85, 0.6);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+    .status-dot.connected { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .status-dot.connecting { background: #eab308; box-shadow: 0 0 8px #eab308; }
+    .status-dot.rejected, .status-dot.error { background: #ef4444; }
+    .shortcut-hint { font-size: 11px; color: #94a3b8; margin-left: 6px; }
+  </style>
+</head>
+<body>
+  <canvas id="garden-canvas"></canvas>
+
+  <div id="ui-container">
+    <!-- Twitch IRC Section -->
+    <div class="ui-group">
+      <span class="ui-title">🌿 TWITCH</span>
+      <input type="text" id="channel-input" placeholder="채널명 (예: shroud)" />
+      <button id="btn-connect" class="btn-primary">연결</button>
+      <button id="btn-disconnect" style="display:none;">해제</button>
+      <div id="status-badge" class="status-badge">
+        <span id="status-dot" class="status-dot"></span>
+        <span id="status-text">대기 중</span>
+      </div>
+    </div>
+
+    <!-- Local Demo Controls -->
+    <div class="ui-group">
+      <span class="ui-title">🎮 TEST</span>
+      <button id="btn-test-water" class="btn-water">💧 !water</button>
+      <button id="btn-test-trash" class="btn-trash">🥫 !trash</button>
+      <button id="btn-test-clean" class="btn-clean">✨ !clean</button>
+      <button id="btn-toggle-card" class="btn-card">🏆 결산 카드</button>
+      <button id="btn-download-png" style="display:none;">💾 PNG 저장</button>
+    </div>
+
+    <!-- Audio & OBS Display Controls -->
+    <div class="ui-group">
+      <button id="btn-mute">🔊 소리 켬</button>
+      <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" style="width: 70px;" />
+      <button id="btn-hide-ui">OBS 숨김 <span class="shortcut-hint">[H]</span></button>
+    </div>
+  </div>
+
+
+  <script type="module">
+    import { createGarden } from './src/garden.mjs';
+    import { connectTwitch } from './src/twitch-irc.mjs';
+    import { createRenderer } from './src/renderer.mjs';
+    import { createSummaryCard } from './src/summary-card.mjs';
+    import * as audio from './src/audio.mjs';
+
+    const garden = createGarden({ autoPlant: true });
+    const canvas = document.getElementById('garden-canvas');
+    const rendererApp = createRenderer({ canvas });
+
+    const summaryCard = createSummaryCard({
+      onDownloadComplete: () => { console.log('Summary card PNG downloaded.'); }
+    });
+    rendererApp.scene.add(summaryCard.group);
+
+    const origAnimate = rendererApp.renderer.render.bind(rendererApp.renderer);
+    let lastTime = performance.now();
+    rendererApp.renderer.render = function(scene, camera) {
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+      if (summaryCard.isVisible()) summaryCard.update(dt);
+      origAnimate(scene, camera);
+    };
+
+    function handleEvent(event, now = Date.now()) {
+      audio.initAudio();
+      const res = garden.apply(event, now);
+      if (res.accepted) {
+        if (res.command === 'trash') audio.playTrash();
+        else if (res.command === 'clean') audio.playClean();
+        else if (res.command === 'water' || res.command === 'plant' || res.command === 'bloom') {
+          if (res.refreshed || res.command === 'bloom') audio.playBloom();
+          else audio.playWater();
+        }
+        rendererApp.syncGarden(garden.snapshot());
+        if (summaryCard.isVisible()) summaryCard.show(garden.getStats());
+      }
+      return res;
+    }
+
+    window.twitchBloom = { garden, handleEvent, summaryCard, rendererApp, audio };
+
+    let localIdx = 1;
+    function getNextViewer() { return 'viewer_' + (localIdx++ % 6 + 1); }
+
+    document.getElementById('btn-test-water').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!water' });
+    });
+    document.getElementById('btn-test-trash').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!trash' });
+    });
+    document.getElementById('btn-test-clean').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!clean' });
+    });
+
+    const btnToggleCard = document.getElementById('btn-toggle-card');
+    const btnDownloadPng = document.getElementById('btn-download-png');
+
+    btnToggleCard.addEventListener('click', () => {
+      audio.initAudio();
+      if (summaryCard.isVisible()) {
+        summaryCard.hide();
+        btnToggleCard.textContent = '🏆 결산 카드';
+        btnDownloadPng.style.display = 'none';
+      } else {
+        summaryCard.show(garden.getStats());
+        audio.playCard();
+        btnToggleCard.textContent = '✖ 카드 닫기';
+        btnDownloadPng.style.display = 'inline-flex';
+      }
+    });
+
+    btnDownloadPng.addEventListener('click', () => {
+      summaryCard.downloadPNG('twitch-bloom-summary.png');
+    });
+
+
+    // Audio Controls
+    const btnMute = document.getElementById('btn-mute');
+    const volumeSlider = document.getElementById('volume-slider');
+
+    btnMute.addEventListener('click', () => {
+      audio.initAudio();
+      const muted = !audio.getMuted();
+      audio.setMuted(muted);
+      btnMute.textContent = muted ? '🔇 음소거됨' : '🔊 소리 켬';
+    });
+
+    volumeSlider.addEventListener('input', (e) => {
+      audio.initAudio();
+      audio.setVolume(parseFloat(e.target.value));
+    });
+
+    // OBS & UI Visibility Controls
+    const uiContainer = document.getElementById('ui-container');
+    const btnHideUi = document.getElementById('btn-hide-ui');
+
+    function toggleUI() {
+      uiContainer.classList.toggle('hidden');
+    }
+
+    btnHideUi.addEventListener('click', toggleUI);
+    window.addEventListener('keydown', (e) => {
+      if ((e.key === 'h' || e.key === 'H') && document.activeElement?.tagName !== 'INPUT') {
+        toggleUI();
+      }
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('obs') === '1' || urlParams.get('overlay') === '1') {
+      uiContainer.classList.add('hidden');
+    }
+
+    const defaultChannel = urlParams.get('channel');
+    if (defaultChannel) {
+      document.getElementById('channel-input').value = defaultChannel;
+    }
+
+    // Twitch IRC Connection Handling
+    const channelInput = document.getElementById('channel-input');
+    const btnConnect = document.getElementById('btn-connect');
+    const btnDisconnect = document.getElementById('btn-disconnect');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+
+    let twitchDisconnect = null;
+
+    function setStatus(status, detail) {
+      statusDot.className = 'status-dot ' + status;
+      if (status === 'connected') {
+        statusText.textContent = '연결됨';
+        btnConnect.style.display = 'none';
+        btnDisconnect.style.display = 'inline-flex';
+        channelInput.disabled = true;
+      } else if (status === 'connecting') {
+        statusText.textContent = '접속 중...';
+      } else if (status === 'reconnecting') {
+        statusText.textContent = '재연결 중...';
+      } else if (status === 'rejected') {
+        statusText.textContent = '인증 거부됨';
+        btnConnect.style.display = 'inline-flex';
+        btnDisconnect.style.display = 'none';
+        channelInput.disabled = false;
+      } else {
+        statusText.textContent = '대기 중';
+        btnConnect.style.display = 'inline-flex';
+        btnDisconnect.style.display = 'none';
+        channelInput.disabled = false;
+      }
+    }
+
+    btnConnect.addEventListener('click', () => {
+      const channel = channelInput.value.trim();
+      if (!channel) {
+        alert('채널명을 입력해 주세요.');
+        return;
+      }
+      try {
+        if (twitchDisconnect) twitchDisconnect();
+        twitchDisconnect = connectTwitch({
+          channel,
+          onChat: (msg) => { handleEvent(msg); },
+          onStatus: (st, detail) => { setStatus(st, detail); }
+        });
+      } catch (err) {
+        alert('연결 설정 오류: ' + err.message);
+      }
+    });
+
+    btnDisconnect.addEventListener('click', () => {
+      if (twitchDisconnect) {
+        twitchDisconnect();
+        twitchDisconnect = null;
+      }
+      setStatus('disconnected');
+    });
+
+    if (defaultChannel) {
+      btnConnect.click();
+    }
+  </script>
+</body>
+</html>
+
