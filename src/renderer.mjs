@@ -211,9 +211,9 @@ export function createRenderer({ canvas }) {
       let record = trashMap.get(item.id);
 
       if (!record) {
-        let posX = (width / 2) + item.x * (width * 0.45);
-        if (posX < 60) posX = 60 + Math.random() * 80;
-        if (posX > width - 60) posX = width - 140 + Math.random() * 80;
+        let posX = (width / 2) + item.x * (width * 0.46);
+        if (posX < 65) posX = 65 + Math.random() * 25;
+        if (posX > width - 65) posX = width - 90 + Math.random() * 25;
 
         const startY = -40 - Math.random() * 60;
         const targetAngle = ((Math.random() - 0.5) * Math.PI) * 0.4;
@@ -484,44 +484,89 @@ export function createRenderer({ canvas }) {
     const time = performance.now() * 0.001;
     const floorY = getFloorY();
 
-    // 1. Ceiling & Wall Trailing Ivy Vines (Pure Organic Ivy, 1:1 Strict Aspect Ratio, Zero Pots!)
+    // 1. Ceiling & Wall Trailing Ivy Vines (Continuous, lush, organic overlapping canopy & cascades!)
     if (images.ivyVine && images.ivyVine.complete) {
       const g = vineState.growth;
       const extraSway = vineState.swayBonus * Math.sin(time * 6.0);
 
-      const tlVines = [
-        { x: 30, y: 16, s: 1.15, r: -0.05, flip: false, seed: 1.1, minG: 0.0 },
-        { x: 75, y: 10, s: 1.25, r: 0.08, flip: true, seed: 2.4, minG: 0.0 },
-        { x: 125, y: 20, s: 1.05, r: -0.12, flip: false, seed: 3.7, minG: 0.5 },
-        { x: 15, y: 55, s: 1.15, r: 0.14, flip: false, seed: 5.9, minG: 0.8 },
-        { x: 35, y: 95, s: 1.1, r: -0.08, flip: true, seed: 4.1, minG: 1.4 },
-        { x: 70, y: 80, s: 0.95, r: 0.10, flip: false, seed: 2.8, minG: 1.9 },
-        { x: 25, y: 145, s: 1.0, r: -0.06, flip: false, seed: 6.2, minG: 2.6 },
-        { x: 175, y: 12, s: 1.15, r: 0.06, flip: true, seed: 4.2, minG: 3.2 },
+      // Left Wall cascading down (Tight 40px overlapping step: zero cuts, 100% continuous vine!)
+      const leftVines = [
+        { x: 36, y: 12,  s: 2.1, r: -0.04, flip: false, minG: 0.0, seed: 1.1 },
+        { x: 30, y: 50,  s: 2.0, r: 0.06,  flip: true,  minG: 0.1, seed: 2.3 },
+        { x: 35, y: 88,  s: 2.2, r: -0.05, flip: false, minG: 0.2, seed: 3.5 },
+        { x: 28, y: 126, s: 2.1, r: 0.07,  flip: true,  minG: 0.4, seed: 4.7 },
+        { x: 34, y: 164, s: 2.0, r: -0.04, flip: false, minG: 0.6, seed: 5.9 },
+        { x: 26, y: 202, s: 2.2, r: 0.08,  flip: true,  minG: 0.9, seed: 1.7 },
+        { x: 32, y: 240, s: 2.1, r: -0.06, flip: false, minG: 1.2, seed: 2.9 },
+        { x: 28, y: 278, s: 2.0, r: 0.05,  flip: true,  minG: 1.5, seed: 4.1 },
+        { x: 34, y: 316, s: 2.2, r: -0.07, flip: false, minG: 1.8, seed: 5.3 },
+        { x: 26, y: 354, s: 2.1, r: 0.06,  flip: true,  minG: 2.1, seed: 1.5 },
+        { x: 32, y: 392, s: 2.0, r: -0.05, flip: false, minG: 2.4, seed: 2.7 },
+        { x: 28, y: 430, s: 2.2, r: 0.07,  flip: true,  minG: 2.7, seed: 3.9 },
+        { x: 34, y: 468, s: 2.1, r: -0.04, flip: false, minG: 3.0, seed: 5.1 },
+        { x: 26, y: 506, s: 2.0, r: 0.08,  flip: true,  minG: 3.3, seed: 1.3 },
+        { x: 32, y: 544, s: 2.2, r: -0.06, flip: false, minG: 3.6, seed: 2.5 },
+        { x: 28, y: 582, s: 2.1, r: 0.05,  flip: true,  minG: 3.9, seed: 3.7 },
+        { x: 33, y: 620, s: 2.0, r: -0.04, flip: false, minG: 4.2, seed: 4.9 },
       ];
 
-      const trVines = [
-        { x: width - 30, y: 16, s: 1.15, r: 0.06, flip: true, seed: 1.5, minG: 0.0 },
-        { x: width - 80, y: 8, s: 1.3, r: -0.1, flip: false, seed: 2.9, minG: 0.0 },
-        { x: width - 135, y: 22, s: 1.05, r: 0.12, flip: true, seed: 3.3, minG: 0.5 },
-        { x: width - 15, y: 58, s: 1.2, r: -0.14, flip: true, seed: 5.2, minG: 0.8 },
-        { x: width - 35, y: 100, s: 1.1, r: 0.09, flip: false, seed: 3.8, minG: 1.4 },
-        { x: width - 75, y: 82, s: 0.95, r: -0.11, flip: true, seed: 4.5, minG: 1.9 },
-        { x: width - 25, y: 150, s: 1.05, r: 0.07, flip: true, seed: 1.9, minG: 2.6 },
-        { x: width - 190, y: 10, s: 1.15, r: -0.08, flip: false, seed: 4.8, minG: 3.2 },
+      // Right Wall cascading down (Tight 40px overlapping step: zero cuts, 100% continuous vine!)
+      const rightVines = [
+        { x: width - 36, y: 12,  s: 2.1, r: 0.04,  flip: true,  minG: 0.0, seed: 1.4 },
+        { x: width - 30, y: 50,  s: 2.0, r: -0.06, flip: false, minG: 0.1, seed: 2.6 },
+        { x: width - 35, y: 88,  s: 2.2, r: 0.05,  flip: true,  minG: 0.2, seed: 3.8 },
+        { x: width - 28, y: 126, s: 2.1, r: -0.07, flip: false, minG: 0.4, seed: 5.0 },
+        { x: width - 34, y: 164, s: 2.0, r: 0.04,  flip: true,  minG: 0.6, seed: 6.2 },
+        { x: width - 26, y: 202, s: 2.2, r: -0.08, flip: false, minG: 0.9, seed: 1.9 },
+        { x: width - 32, y: 240, s: 2.1, r: 0.06,  flip: true,  minG: 1.2, seed: 3.1 },
+        { x: width - 28, y: 278, s: 2.0, r: -0.05, flip: false, minG: 1.5, seed: 4.3 },
+        { x: width - 34, y: 316, s: 2.2, r: 0.07,  flip: true,  minG: 1.8, seed: 5.5 },
+        { x: width - 26, y: 354, s: 2.1, r: -0.06, flip: false, minG: 2.1, seed: 1.7 },
+        { x: width - 32, y: 392, s: 2.0, r: 0.05,  flip: true,  minG: 2.4, seed: 2.9 },
+        { x: width - 28, y: 430, s: 2.2, r: -0.07, flip: false, minG: 2.7, seed: 4.1 },
+        { x: width - 34, y: 468, s: 2.1, r: 0.04,  flip: true,  minG: 3.0, seed: 5.3 },
+        { x: width - 26, y: 506, s: 2.0, r: -0.08, flip: false, minG: 3.3, seed: 1.5 },
+        { x: width - 32, y: 544, s: 2.2, r: 0.06,  flip: true,  minG: 3.6, seed: 2.7 },
+        { x: width - 28, y: 582, s: 2.1, r: -0.05, flip: false, minG: 3.9, seed: 3.9 },
+        { x: width - 33, y: 620, s: 2.0, r: 0.04,  flip: true,  minG: 4.2, seed: 5.1 },
       ];
 
-      for (const p of tlVines) {
+      // Ceiling hanging canopy (Tight overlapping steps across top border!)
+      const ceilingVines = [
+        { x: 80,           y: 10, s: 2.2, r: 0.04,  flip: false, minG: 0.0, seed: 1.5 },
+        { x: 145,          y: 16, s: 2.1, r: -0.05, flip: true,  minG: 0.2, seed: 2.7 },
+        { x: 215,          y: 12, s: 2.3, r: 0.06,  flip: false, minG: 0.4, seed: 3.9 },
+        { x: 290,          y: 18, s: 2.1, r: -0.04, flip: true,  minG: 0.6, seed: 4.5 },
+        { x: width * 0.26, y: 14, s: 2.2, r: 0.05,  flip: false, minG: 0.9, seed: 5.2 },
+        { x: width * 0.35, y: 20, s: 2.1, r: -0.06, flip: true,  minG: 1.2, seed: 6.0 },
+        { x: width * 0.44, y: 15, s: 2.3, r: 0.04,  flip: false, minG: 1.5, seed: 1.8 },
+        { x: width * 0.53, y: 22, s: 2.1, r: -0.05, flip: true,  minG: 1.5, seed: 2.9 },
+        { x: width * 0.62, y: 14, s: 2.2, r: 0.06,  flip: false, minG: 1.2, seed: 3.7 },
+        { x: width * 0.71, y: 20, s: 2.1, r: -0.04, flip: true,  minG: 0.9, seed: 4.4 },
+        { x: width - 290,  y: 18, s: 2.2, r: 0.05,  flip: false, minG: 0.6, seed: 5.0 },
+        { x: width - 215,  y: 12, s: 2.3, r: -0.04, flip: true,  minG: 0.4, seed: 5.8 },
+        { x: width - 145,  y: 16, s: 2.1, r: 0.05,  flip: false, minG: 0.2, seed: 6.3 },
+        { x: width - 80,   y: 10, s: 2.2, r: -0.04, flip: true,  minG: 0.0, seed: 6.9 },
+      ];
+
+      for (const p of leftVines) {
         if (g < p.minG) continue;
-        const fade = Math.min(1.0, (g - p.minG) / 0.4);
+        const fade = Math.min(1.0, (g - p.minG) / 0.3);
         const sway = Math.sin(time * 1.5 + p.seed) * 0.05 + extraSway;
         drawSprite(images.ivyVine, p.x, p.y, p.s * fade, p.r + sway, p.flip, fade);
       }
 
-      for (const p of trVines) {
+      for (const p of rightVines) {
         if (g < p.minG) continue;
-        const fade = Math.min(1.0, (g - p.minG) / 0.4);
+        const fade = Math.min(1.0, (g - p.minG) / 0.3);
         const sway = Math.sin(time * 1.5 + p.seed) * 0.05 + extraSway;
+        drawSprite(images.ivyVine, p.x, p.y, p.s * fade, p.r + sway, p.flip, fade);
+      }
+
+      for (const p of ceilingVines) {
+        if (g < p.minG) continue;
+        const fade = Math.min(1.0, (g - p.minG) / 0.3);
+        const sway = Math.sin(time * 1.3 + p.seed) * 0.04 + extraSway * 0.7;
         drawSprite(images.ivyVine, p.x, p.y, p.s * fade, p.r + sway, p.flip, fade);
       }
     }
