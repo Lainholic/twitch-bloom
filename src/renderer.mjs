@@ -1,13 +1,31 @@
 import * as THREE from '../vendor/three.module.js';
 
-// Shared Materials & Palettes for high performance
-const stemMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.6 });
-const leafMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.5 });
-const sunCenterMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
-const goldStemMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.6, roughness: 0.3 });
+// Petal & Foliage Geometry Builders (Soft, curved organic petals — no spikes/cones)
+
+// Generates an organic, spoon-curved petal mesh
+function createCurvedPetalGeometry(width = 0.22, length = 0.45, cupDepth = 0.08) {
+  // Use a squashed sphere segment to create a natural, dished/cupped petal
+  const geo = new THREE.SphereGeometry(length, 12, 10, 0, Math.PI * 0.8, 0, Math.PI * 0.7);
+  geo.scale(width / length, 1.0, cupDepth / length);
+  geo.center();
+  return geo;
+}
+
+// Flat rounded oval petal (for sunflowers, daisies)
+function createOvalPetalGeometry(width = 0.16, length = 0.48) {
+  const geo = new THREE.SphereGeometry(length * 0.5, 10, 8);
+  geo.scale(width / (length * 0.5), 1.0, 0.12);
+  geo.translate(0, length * 0.5, 0);
+  return geo;
+}
+
+// Shared Materials & Palettes
+const stemMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.6 });
+const leafMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.5 });
+const sunCenterMat = new THREE.MeshStandardMaterial({ color: 0x5c2e0b, roughness: 0.85 }); // Soft dark disc
 
 // Dynamic Flower Petal Materials based on traits hue
-function createPetalMaterial(baseColorHex, hueOffset = 0, metalness = 0, roughness = 0.4) {
+function createPetalMaterial(baseColorHex, hueOffset = 0, roughness = 0.45) {
   const color = new THREE.Color(baseColorHex);
   if (hueOffset !== 0) {
     const hsl = {};
@@ -15,7 +33,25 @@ function createPetalMaterial(baseColorHex, hueOffset = 0, metalness = 0, roughne
     hsl.h = (hsl.h + (hueOffset % 60 - 30) / 360 + 1) % 1;
     color.setHSL(hsl.h, hsl.s, hsl.l);
   }
-  return new THREE.MeshStandardMaterial({ color, metalness, roughness });
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness,
+    metalness: 0.05, // Non-metallic for soft organic look
+    side: THREE.DoubleSide
+  });
+}
+
+// Golden Bloom Special Material
+function createGoldPetalMaterial(hueOffset = 0) {
+  const color = new THREE.Color(0xfde047);
+  return new THREE.MeshStandardMaterial({
+    color,
+    emissive: 0xb45309,
+    emissiveIntensity: 0.25,
+    roughness: 0.3,
+    metalness: 0.25,
+    side: THREE.DoubleSide
+  });
 }
 
 // Nameplate Sprite Generator (Canvas-based high-DPI text tag)
@@ -65,118 +101,169 @@ const bananaMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0
 const boneMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.7 });
 const weedMat = new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.9 });
 
-// 1. Sprout (Growth 0)
+// 1. Sprout (Growth 0) — Cute two-leaf sprout
 export function createSproutMesh(traits) {
   const group = new THREE.Group();
-  const stemH = 0.5 * (traits?.height || 1);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, stemH, 8), stemMat);
+  const stemH = 0.55 * (traits?.height || 1);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, stemH, 8), stemMat);
   stem.position.y = stemH / 2;
   group.add(stem);
 
-  const leafGeo = new THREE.SphereGeometry(0.14, 8, 8);
-  leafGeo.scale(1, 0.3, 1.8);
+  // Soft oval leaves
+  const leafGeo = new THREE.SphereGeometry(0.12, 10, 8);
+  leafGeo.scale(1.2, 0.25, 1.8);
+
   const leftLeaf = new THREE.Mesh(leafGeo, leafMat);
-  leftLeaf.position.set(-0.12, stemH, 0);
-  leftLeaf.rotation.set(0.2, 0, 0.6);
+  leftLeaf.position.set(-0.1, stemH - 0.02, 0);
+  leftLeaf.rotation.set(0.2, 0, 0.55);
   group.add(leftLeaf);
 
   const rightLeaf = new THREE.Mesh(leafGeo, leafMat);
-  rightLeaf.position.set(0.12, stemH, 0);
-  rightLeaf.rotation.set(-0.2, 0, -0.6);
+  rightLeaf.position.set(0.1, stemH - 0.02, 0);
+  rightLeaf.rotation.set(-0.2, 0, -0.55);
   group.add(rightLeaf);
   return group;
 }
 
-// 2. Rose (Growth 1)
+// 2. Rose (Growth 1) — Multi-layered organic cup petals
 export function createRoseMesh(traits) {
   const group = new THREE.Group();
-  const stemH = 0.8 * (traits?.height || 1);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, stemH, 8), stemMat);
+  const stemH = 0.85 * (traits?.height || 1);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, stemH, 8), stemMat);
   stem.position.y = stemH / 2;
   group.add(stem);
 
-  // Leaves along stem
-  const leafGeo = new THREE.SphereGeometry(0.16, 8, 8);
-  leafGeo.scale(1, 0.25, 1.6);
-  const leaf = new THREE.Mesh(leafGeo, leafMat);
-  leaf.position.set(0.1, stemH * 0.4, 0);
-  leaf.rotation.set(0.3, 0.2, -0.5);
-  group.add(leaf);
+  // Mid stem leaves
+  const stemLeafGeo = new THREE.SphereGeometry(0.12, 8, 8);
+  stemLeafGeo.scale(1.3, 0.2, 1.5);
+  const sLeaf = new THREE.Mesh(stemLeafGeo, leafMat);
+  sLeaf.position.set(0.08, stemH * 0.45, 0);
+  sLeaf.rotation.set(0.3, 0.2, -0.6);
+  group.add(sLeaf);
 
-  // Dynamic tinted petal material
-  const petalMat = createPetalMaterial(0xf43f5e, traits?.hue || 0, 0, 0.4);
-
-  // Rose bud / flower layers
   const head = new THREE.Group();
   head.position.y = stemH;
-  for (let i = 0; i < 7; i++) {
-    const angle = (i / 7) * Math.PI * 2;
-    const petal = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 6), petalMat);
-    petal.position.set(Math.cos(angle) * 0.1, 0.1, Math.sin(angle) * 0.1);
-    petal.rotation.set(Math.sin(angle) * 0.5, angle, -Math.cos(angle) * 0.5);
+
+  const petalMat = createPetalMaterial(0xf43f5e, traits?.hue || 0, 0.4);
+
+  // Center bud
+  const centerCore = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), petalMat);
+  centerCore.scale.set(1.0, 1.3, 1.0);
+  head.add(centerCore);
+
+  // Inner petal layer (3 tightly wrapped petals)
+  const innerPetalGeo = createCurvedPetalGeometry(0.18, 0.32, 0.09);
+  for (let i = 0; i < 3; i++) {
+    const angle = (i / 3) * Math.PI * 2;
+    const petal = new THREE.Mesh(innerPetalGeo, petalMat);
+    petal.position.set(Math.cos(angle) * 0.07, 0.04, Math.sin(angle) * 0.07);
+    petal.rotation.set(0.3 * Math.cos(angle), -angle + Math.PI / 2, 0.3 * Math.sin(angle));
     head.add(petal);
   }
-  const centerBud = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), petalMat);
-  centerBud.position.y = 0.12;
-  head.add(centerBud);
+
+  // Outer petal layer (5 flared open petals)
+  const outerPetalGeo = createCurvedPetalGeometry(0.24, 0.42, 0.1);
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 + 0.4;
+    const petal = new THREE.Mesh(outerPetalGeo, petalMat);
+    petal.position.set(Math.cos(angle) * 0.14, 0.02, Math.sin(angle) * 0.14);
+    petal.rotation.set(0.7 * Math.cos(angle), -angle + Math.PI / 2, 0.7 * Math.sin(angle));
+    head.add(petal);
+  }
+
   group.add(head);
   return group;
 }
 
-// 3. Sunflower (Growth 2)
+// 3. Sunflower / Daisy (Growth 2) — Soft center disc with flat oval petals
 export function createSunflowerMesh(traits) {
   const group = new THREE.Group();
-  const stemH = 1.1 * (traits?.height || 1);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, stemH, 8), stemMat);
+  const stemH = 1.15 * (traits?.height || 1);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, stemH, 8), stemMat);
   stem.position.y = stemH / 2;
   group.add(stem);
 
+  // Two broad leaves along stem
+  const leafGeo = new THREE.SphereGeometry(0.16, 8, 8);
+  leafGeo.scale(1.4, 0.2, 1.6);
+  const leaf1 = new THREE.Mesh(leafGeo, leafMat);
+  leaf1.position.set(0.12, stemH * 0.4, 0);
+  leaf1.rotation.set(0.3, 0.2, -0.6);
+  group.add(leaf1);
+  const leaf2 = new THREE.Mesh(leafGeo, leafMat);
+  leaf2.position.set(-0.12, stemH * 0.6, 0);
+  leaf2.rotation.set(-0.3, -0.2, 0.6);
+  group.add(leaf2);
+
   const head = new THREE.Group();
   head.position.y = stemH;
-  // Dark center disk
-  const center = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 16), sunCenterMat);
-  center.rotation.x = Math.PI / 2;
+
+  // Soft brown center dome
+  const centerGeo = new THREE.SphereGeometry(0.22, 14, 10);
+  centerGeo.scale(1.0, 0.4, 1.0);
+  const center = new THREE.Mesh(centerGeo, sunCenterMat);
   head.add(center);
 
-  // Dynamic tinted petal material
-  const petalMat = createPetalMaterial(0xfacc15, traits?.hue || 0, 0, 0.35);
+  // Flat rounded oval petals arranged in a flat ring facing forward/upward
+  const petalMat = createPetalMaterial(0xfacc15, traits?.hue || 0, 0.4);
+  const petalCount = 12;
+  const petalGeo = createOvalPetalGeometry(0.13, 0.42);
 
-  // Radial petals
-  const petalCount = traits?.petals || 10;
   for (let i = 0; i < petalCount; i++) {
     const angle = (i / petalCount) * Math.PI * 2;
-    const petal = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.35, 6), petalMat);
-    petal.position.set(Math.cos(angle) * 0.34, Math.sin(angle) * 0.34, 0);
-    petal.rotation.z = angle - Math.PI / 2;
+    const petal = new THREE.Mesh(petalGeo, petalMat);
+    petal.position.set(Math.cos(angle) * 0.16, 0, Math.sin(angle) * 0.16);
+    petal.rotation.y = -angle + Math.PI / 2;
+    petal.rotation.x = Math.PI / 2 - 0.2; // Lie flat facing viewer
     head.add(petal);
   }
+
+  // Tilt head slightly forward toward camera
+  head.rotation.x = 0.35;
   group.add(head);
   return group;
 }
 
-// 4. Golden Flower (Growth 3 / Bloom)
+// 4. Golden Flower (Growth 3 / Bloom) — Elegant blooming lotus/lily
 export function createGoldenMesh(traits) {
   const group = new THREE.Group();
   const stemH = 1.3 * (traits?.height || 1);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, stemH, 8), goldStemMat);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, stemH, 8), stemMat);
   stem.position.y = stemH / 2;
   group.add(stem);
 
   const head = new THREE.Group();
   head.position.y = stemH;
 
-  const goldPetalMat = createPetalMaterial(0xfef08a, traits?.hue || 0, 0.8, 0.2);
+  const goldMat = createGoldPetalMaterial(traits?.hue || 0);
 
-  const core = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), goldPetalMat);
-  head.add(core);
+  // Glowing center pistil
+  const centerCore = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 12, 12),
+    new THREE.MeshStandardMaterial({ color: 0xffedd5, emissive: 0xf59e0b, emissiveIntensity: 0.6, roughness: 0.2 })
+  );
+  head.add(centerCore);
 
-  for (let i = 0; i < 12; i++) {
-    const angle = (i / 12) * Math.PI * 2;
-    const petal = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.45, 6), goldPetalMat);
-    petal.position.set(Math.cos(angle) * 0.4, Math.sin(angle) * 0.4, 0);
-    petal.rotation.z = angle - Math.PI / 2;
+  // Layer 1: Inner upright blooming petals (5 petals)
+  const innerPetalGeo = createCurvedPetalGeometry(0.22, 0.46, 0.12);
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2;
+    const petal = new THREE.Mesh(innerPetalGeo, goldMat);
+    petal.position.set(Math.cos(angle) * 0.1, 0.06, Math.sin(angle) * 0.1);
+    petal.rotation.set(0.45 * Math.cos(angle), -angle + Math.PI / 2, 0.45 * Math.sin(angle));
     head.add(petal);
   }
+
+  // Layer 2: Outer wide open petals (7 petals)
+  const outerPetalGeo = createCurvedPetalGeometry(0.26, 0.52, 0.14);
+  for (let i = 0; i < 7; i++) {
+    const angle = (i / 7) * Math.PI * 2 + 0.35;
+    const petal = new THREE.Mesh(outerPetalGeo, goldMat);
+    petal.position.set(Math.cos(angle) * 0.18, 0.02, Math.sin(angle) * 0.18);
+    petal.rotation.set(0.9 * Math.cos(angle), -angle + Math.PI / 2, 0.9 * Math.sin(angle));
+    head.add(petal);
+  }
+
   group.add(head);
   return group;
 }
@@ -241,18 +328,22 @@ export function createRenderer({ canvas, onSceneReady = () => {} } = {}) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x000000, 0);
 
-  // Lighting
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334155, 0.9);
+  // Lighting — Warm vibrant garden lighting
+  const hemiLight = new THREE.HemisphereLight(0xfff7ed, 0x1e293b, 1.1);
   scene.add(hemiLight);
 
-  const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.2);
-  dirLight.position.set(5, 8, 6);
+  const dirLight = new THREE.DirectionalLight(0xffedd5, 1.4);
+  dirLight.position.set(4, 8, 5);
   scene.add(dirLight);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  const frontLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  frontLight.position.set(0, 1, 8);
+  scene.add(frontLight);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
   scene.add(ambientLight);
 
-  // Bottom Vine Base (Procedural curve)
+  // Bottom Vine Base (Procedural curve with leaves)
   const vineCurve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(-7.5, -2.25, 0),
     new THREE.Vector3(-4.0, -2.15, 0.2),
@@ -260,10 +351,20 @@ export function createRenderer({ canvas, onSceneReady = () => {} } = {}) {
     new THREE.Vector3(4.0, -2.18, 0.15),
     new THREE.Vector3(7.5, -2.25, 0)
   ]);
-  const vineGeo = new THREE.TubeGeometry(vineCurve, 32, 0.045, 8, false);
-  const vineMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.7 });
+  const vineGeo = new THREE.TubeGeometry(vineCurve, 32, 0.06, 8, false);
+  const vineMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6 });
   const vineMesh = new THREE.Mesh(vineGeo, vineMat);
   scene.add(vineMesh);
+
+  // Tiny leaves along bottom vine
+  for (let vx = -6.5; vx <= 6.5; vx += 1.3) {
+    const vLeafGeo = new THREE.SphereGeometry(0.09, 6, 6);
+    vLeafGeo.scale(1.2, 0.2, 1.6);
+    const vLeaf = new THREE.Mesh(vLeafGeo, leafMat);
+    vLeaf.position.set(vx + (Math.random() * 0.3 - 0.15), -2.23, (Math.random() * 0.2 - 0.1));
+    vLeaf.rotation.set((Math.random() * 0.4 - 0.2), Math.random() * Math.PI, (Math.random() * 0.4 - 0.2));
+    scene.add(vLeaf);
+  }
 
   // Containers
   const flowersGroup = new THREE.Group();

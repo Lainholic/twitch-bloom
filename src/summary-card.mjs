@@ -10,12 +10,13 @@ export function createSummaryCard({ onDownloadComplete = () => {} } = {}) {
   const ctx = cardCanvas.getContext('2d');
 
   const texture = new THREE.CanvasTexture(cardCanvas);
-  const cardGeo = new THREE.BoxGeometry(4.0, 5.33, 0.08);
+  const cardGeo = new THREE.BoxGeometry(2.4, 3.2, 0.06);
   const cardMatFront = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.35, metalness: 0.15 });
   const cardMatBack = new THREE.MeshStandardMaterial({ color: 0x111625, roughness: 0.5 });
   const cardMatEdge = new THREE.MeshStandardMaterial({ color: 0x384565, roughness: 0.2, metalness: 0.6 });
 
   const cardMesh = new THREE.Mesh(cardGeo, [cardMatEdge, cardMatEdge, cardMatEdge, cardMatEdge, cardMatFront, cardMatBack]);
+  cardMesh.position.y = -0.7; // Align with camera center view
   group.add(cardMesh);
 
   let isShowing = false;
@@ -116,7 +117,7 @@ export function createSummaryCard({ onDownloadComplete = () => {} } = {}) {
         const s = Math.max(0.01, eased);
         group.scale.set(s, s, s);
         group.rotation.y = (-Math.PI * 2) * (1 - animProgress);
-        group.position.z = 1.2 * animProgress;
+        group.position.z = 1.0 * animProgress;
       } else {
         const time = performance.now() * 0.0015;
         group.rotation.y = Math.sin(time) * 0.06;
