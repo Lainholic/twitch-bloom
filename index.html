@@ -30,7 +30,7 @@
       border: 2px solid #6366f1; border-radius: 10px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: #e0e7ff; z-index: 5; overflow: hidden;
+      color: #e0e7ff; z-index: 50; overflow: hidden;
     }
     .webcam-badge {
       position: absolute; top: 6px; left: 8px; font-size: 10px; font-weight: 800;
@@ -44,13 +44,13 @@
     @keyframes avatarFloat { from { transform: translateY(0); } to { transform: translateY(-6px); } }
     .webcam-name { font-size: 11px; font-weight: 700; color: #a5b4fc; margin-top: 4px; }
 
-    /* Mock In-Game Twitch Chat (Bottom-Right, Semi-Transparent) */
+    /* Mock In-Game Twitch Chat (Right-Middle, High z-index, Never Obscured) */
     #mock-chat {
-      position: absolute; bottom: 85px; right: 24px; width: 260px; height: 210px;
-      background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px;
+      position: absolute; bottom: 230px; right: 24px; width: 260px; height: 210px;
+      background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 10px;
       padding: 10px; display: flex; flex-direction: column; justify-content: flex-end;
-      overflow: hidden; z-index: 5; pointer-events: none;
+      overflow: hidden; z-index: 50; pointer-events: none;
     }
     .mock-chat-header {
       font-size: 11px; font-weight: 800; color: #a855f7; margin-bottom: 6px;
@@ -68,10 +68,11 @@
     .chat-user { font-weight: 700; font-size: 11px; }
     .chat-text { color: #f1f5f9; }
 
-    /* Three.js Garden & Junkyard Canvas */
+    /* Pixelated Garden & Junkyard Canvas */
     #garden-canvas {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: block; pointer-events: none; z-index: 10;
+      image-rendering: pixelated; image-rendering: crisp-edges;
     }
 
     /* Top Floating Control Toolbar */
@@ -127,20 +128,24 @@
   <!-- Mock Game Screen (Toggleable background for development/demo recording) -->
   <div id="mock-game-screen">
     <canvas id="mock-game-canvas"></canvas>
-    <div id="mock-webcam">
-      <div class="webcam-badge">🔴 LIVE 60FPS</div>
-      <div class="webcam-avatar">🎮</div>
-      <div class="webcam-name">STREAMER_CAM</div>
-    </div>
-    <div id="mock-chat">
-      <div class="mock-chat-header">💬 LIVE TWITCH CHAT</div>
-      <div id="mock-chat-list" class="mock-chat-messages">
-        <div class="chat-msg"><span class="chat-user" style="color:#38bdf8;">system:</span> <span class="chat-text">방송이 시작되었습니다!</span></div>
-      </div>
+  </div>
+
+  <!-- Streamer Webcam Mockup (Top-Left, z-index 50) -->
+  <div id="mock-webcam">
+    <div class="webcam-badge">🔴 LIVE 60FPS</div>
+    <div class="webcam-avatar">🎮</div>
+    <div class="webcam-name">STREAMER_CAM</div>
+  </div>
+
+  <!-- Mock In-Game Twitch Chat (Right-Middle, z-index 50) -->
+  <div id="mock-chat">
+    <div class="mock-chat-header">💬 LIVE TWITCH CHAT</div>
+    <div id="mock-chat-list" class="mock-chat-messages">
+      <div class="chat-msg"><span class="chat-user" style="color:#38bdf8;">system:</span> <span class="chat-text">방송이 시작되었습니다!</span></div>
     </div>
   </div>
 
-  <!-- Three.js Overlay Garden Canvas (100% Transparent, Only Corners & Bottom Edges Populated) -->
+  <!-- Retro Pixel Art Garden Canvas (100% Transparent, Only Corners & Bottom Edges Populated) -->
   <canvas id="garden-canvas"></canvas>
 
   <!-- Floating Control UI -->
@@ -184,7 +189,7 @@
     <!-- Audio & OBS Controls -->
     <div class="ui-group">
       <button id="btn-mute">🔊 소리 켬</button>
-      <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" style="width: 60px;" />
+      <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.15" style="width: 60px;" />
       <button id="btn-hide-ui">OBS 숨김 <span class="shortcut-hint">[H]</span></button>
     </div>
   </div>
@@ -201,6 +206,9 @@
     const garden = createGarden({ autoPlant: true });
     const canvas = document.getElementById('garden-canvas');
     const rendererApp = createRenderer({ canvas });
+
+    // Set gentle, quiet initial volume (0.15)
+    audio.setVolume(0.15);
 
     const summaryCard = createSummaryCard({
       onDownloadComplete: () => { console.log('Summary card PNG downloaded.'); }
@@ -220,79 +228,147 @@
     window.addEventListener('resize', resizeMock);
 
     function drawMockGame(time) {
-      if (!mockActive) return;
+      if (!mockActive) {
+        mockCtx.clearRect(0, 0, mockCanvas.width, mockCanvas.height);
+        return;
+      }
       const w = mockCanvas.width, h = mockCanvas.height;
       mockCtx.clearRect(0, 0, w, h);
+      mockCtx.imageSmoothingEnabled = false;
 
-      // Dark Sci-Fi / Dungeon background
-      const grad = mockCtx.createRadialGradient(w / 2, h / 2, 80, w / 2, h / 2, Math.max(w, h) * 0.75);
-      grad.addColorStop(0, '#1e1b4b');
-      grad.addColorStop(0.5, '#0f172a');
-      grad.addColorStop(1, '#05070e');
-      mockCtx.fillStyle = grad;
-      mockCtx.fillRect(0, 0, w, h);
+      // 1. Dark Retro Dungeon Atmosphere (No purple grid!)
+      const horizonY = h * 0.48;
+      mockCtx.fillStyle = '#080a10';
+      mockCtx.fillRect(0, 0, w, horizonY);
+      mockCtx.fillStyle = '#0e111a';
+      mockCtx.fillRect(0, horizonY, w, h - horizonY);
 
-      // Moving floor perspective grid
-      mockCtx.strokeStyle = 'rgba(99, 102, 241, 0.22)';
-      mockCtx.lineWidth = 1.5;
-      const horizonY = h * 0.52;
+      // Stone Wall Brick Pattern
+      mockCtx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+      const brickH = 26, brickW = 60;
+      for (let y = 0; y < horizonY; y += brickH) {
+        const offset = (Math.floor(y / brickH) % 2) * (brickW / 2);
+        for (let x = -brickW; x < w + brickW; x += brickW) {
+          mockCtx.fillRect(x + offset, y, brickW - 2, brickH - 2);
+        }
+      }
 
-      // Perspective lines
-      for (let x = -w * 0.5; x <= w * 1.5; x += 120) {
+      // Dungeon Floor Perspective Tiles
+      mockCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      mockCtx.lineWidth = 1;
+      const stepSpeed = (time * 15) % 35;
+      for (let y = horizonY + stepSpeed; y < h; y += 35) {
+        mockCtx.beginPath();
+        mockCtx.moveTo(0, y);
+        mockCtx.lineTo(w, y);
+        mockCtx.stroke();
+      }
+      for (let x = -w * 0.4; x <= w * 1.4; x += 110) {
         mockCtx.beginPath();
         mockCtx.moveTo(w / 2, horizonY);
         mockCtx.lineTo(x, h);
         mockCtx.stroke();
       }
 
-      // Moving horizontal lines
-      const speed = (time * 0.08) % 40;
-      for (let y = horizonY + speed; y < h; y += 40) {
-        const norm = (y - horizonY) / (h - horizonY);
-        mockCtx.strokeStyle = `rgba(99, 102, 241, ${0.1 + norm * 0.35})`;
-        mockCtx.beginPath();
-        mockCtx.moveTo(0, y);
-        mockCtx.lineTo(w, y);
-        mockCtx.stroke();
-      }
+      // 2. Central FPS Reticle / Crosshair (Green retro pixel dot)
+      const cx = Math.round(w / 2), cy = Math.round(h / 2);
+      mockCtx.fillStyle = '#22c55e';
+      // Center dot
+      mockCtx.fillRect(cx - 2, cy - 2, 4, 4);
 
-      // Central FPS Reticle / Crosshair (Safe Zone Visual indicator)
-      const cx = w / 2, cy = h / 2;
-      mockCtx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+      // Reticle Brackets [ + ]
+      mockCtx.strokeStyle = 'rgba(34, 197, 94, 0.7)';
       mockCtx.lineWidth = 2;
+      // Top / Bottom
       mockCtx.beginPath();
-      mockCtx.arc(cx, cy, 26, 0, Math.PI * 2);
+      mockCtx.moveTo(cx, cy - 24); mockCtx.lineTo(cx, cy - 8);
+      mockCtx.moveTo(cx, cy + 8); mockCtx.lineTo(cx, cy + 24);
+      // Left / Right
+      mockCtx.moveTo(cx - 24, cy); mockCtx.lineTo(cx - 8, cy);
+      mockCtx.moveTo(cx + 8, cy); mockCtx.lineTo(cx + 24, cy);
       mockCtx.stroke();
 
-      mockCtx.beginPath();
-      mockCtx.moveTo(cx - 36, cy); mockCtx.lineTo(cx - 10, cy);
-      mockCtx.moveTo(cx + 10, cy); mockCtx.lineTo(cx + 36, cy);
-      mockCtx.moveTo(cx, cy - 36); mockCtx.lineTo(cx, cy - 10);
-      mockCtx.moveTo(cx, cy + 10); mockCtx.lineTo(cx, cy + 36);
-      mockCtx.stroke();
+      // Outer targeting corner ticks
+      mockCtx.strokeStyle = 'rgba(34, 197, 94, 0.35)';
+      mockCtx.strokeRect(cx - 36, cy - 36, 72, 72);
 
-      // Safe Zone hint text
-      mockCtx.fillStyle = 'rgba(56, 189, 248, 0.35)';
-      mockCtx.font = 'bold 12px monospace';
+      // Safe Zone Indicator
+      mockCtx.fillStyle = 'rgba(34, 197, 94, 0.4)';
+      mockCtx.font = 'bold 11px monospace';
       mockCtx.textAlign = 'center';
-      mockCtx.fillText('GAMEPLAY SAFE ZONE (NO OVERLAY)', cx, cy + 50);
+      mockCtx.fillText('RETICLE :: SAFE ZONE (NO OVERLAY)', cx, cy + 54);
 
-      // In-game HUD: HP Bar (Bottom Center-Left)
-      mockCtx.fillStyle = 'rgba(15, 23, 42, 0.7)';
-      mockCtx.fillRect(cx - 240, h - 55, 180, 18);
+      // 3. Top-Left Retro Hearts HP Bar (Below Webcam: y: 212)
+      const hpX = 24, hpY = 212;
+      mockCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      mockCtx.fillRect(hpX, hpY, 220, 36);
+      mockCtx.strokeStyle = '#334155';
+      mockCtx.lineWidth = 1;
+      mockCtx.strokeRect(hpX + 0.5, hpY + 0.5, 219, 35);
+
+      // 5 Pixel Hearts
+      for (let i = 0; i < 5; i++) {
+        const hx = hpX + 12 + i * 22, hy = hpY + 10;
+        mockCtx.fillStyle = '#ef4444';
+        mockCtx.fillRect(hx, hy + 2, 6, 8);
+        mockCtx.fillRect(hx + 8, hy + 2, 6, 8);
+        mockCtx.fillRect(hx + 2, hy, 10, 12);
+        mockCtx.fillRect(hx + 4, hy + 12, 6, 2);
+        mockCtx.fillRect(hx + 6, hy + 14, 2, 2);
+      }
+      mockCtx.fillStyle = '#f8fafc';
+      mockCtx.font = 'bold 10px monospace';
+      mockCtx.textAlign = 'right';
+      mockCtx.fillText('HP 100/100', hpX + 210, hpY + 22);
+
+      // 4. Top-Right Retro Minimap
+      const mapW = 146, mapH = 96;
+      const mapX = w - mapW - 24, mapY = 68;
+      mockCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      mockCtx.fillRect(mapX, mapY, mapW, mapH);
+      mockCtx.strokeStyle = '#0284c7';
+      mockCtx.strokeRect(mapX + 0.5, mapY + 0.5, mapW - 1, mapH - 1);
+
+      // Minimap Header
+      mockCtx.fillStyle = '#38bdf8';
+      mockCtx.font = 'bold 9px monospace';
+      mockCtx.textAlign = 'left';
+      mockCtx.fillText('MAP: B3F SANCTUARY', mapX + 8, mapY + 14);
+
+      // Compass 'N'
       mockCtx.fillStyle = '#ef4444';
-      mockCtx.fillRect(cx - 238, h - 53, 150, 14);
-      mockCtx.fillStyle = '#fff';
-      mockCtx.font = 'bold 10px sans-serif';
-      mockCtx.fillText('HP  85 / 100', cx - 150, h - 42);
+      mockCtx.textAlign = 'right';
+      mockCtx.fillText('▲ N', mapX + mapW - 8, mapY + 14);
 
-      // In-game HUD: AMMO (Bottom Center-Right)
-      mockCtx.fillStyle = 'rgba(15, 23, 42, 0.7)';
-      mockCtx.fillRect(cx + 60, h - 55, 180, 18);
-      mockCtx.fillStyle = '#eab308';
-      mockCtx.fillRect(cx + 62, h - 53, 130, 14);
-      mockCtx.fillStyle = '#fff';
-      mockCtx.fillText('AMMO  26 / 30', cx + 150, h - 42);
+      // Dungeon Rooms outline
+      mockCtx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+      mockCtx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+      mockCtx.fillRect(mapX + 18, mapY + 26, 34, 26);
+      mockCtx.strokeRect(mapX + 18, mapY + 26, 34, 26);
+      mockCtx.fillRect(mapX + 58, mapY + 34, 46, 38);
+      mockCtx.strokeRect(mapX + 58, mapY + 34, 46, 38);
+      mockCtx.fillRect(mapX + 110, mapY + 44, 24, 28);
+      mockCtx.strokeRect(mapX + 110, mapY + 44, 24, 28);
+
+      // Player Blinking Dot
+      const blink = Math.sin(time * 6) > 0;
+      mockCtx.fillStyle = blink ? '#facc15' : '#eab308';
+      mockCtx.fillRect(mapX + 78, mapY + 52, 5, 5);
+
+      // 5. In-Game HUD: Weapon & Ammo (Bottom Center)
+      mockCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      mockCtx.fillRect(cx - 130, h - 52, 260, 24);
+      mockCtx.strokeStyle = '#475569';
+      mockCtx.strokeRect(cx - 130 + 0.5, h - 52 + 0.5, 259, 23);
+
+      mockCtx.fillStyle = '#a5b4fc';
+      mockCtx.font = 'bold 10px monospace';
+      mockCtx.textAlign = 'left';
+      mockCtx.fillText('WEAPON: PLASMA CASTER', cx - 120, h - 36);
+
+      mockCtx.fillStyle = '#facc15';
+      mockCtx.textAlign = 'right';
+      mockCtx.fillText('AMMO 28 / 30', cx + 120, h - 36);
     }
 
     // --- Mock Chat Feed Helper ---
@@ -324,12 +400,35 @@
       mockChatList.scrollTop = mockChatList.scrollHeight;
     }
 
+    // --- Command Normalizer (Translate Korean & English aliases) ---
+    function normalizeCommandText(text) {
+      if (!text) return '';
+      const trimmed = text.trim();
+      const lower = trimmed.toLowerCase();
+      if (['!물', '!물주기', '!water'].includes(lower)) return '!water';
+      if (['!햇빛', '!해', '!햇살', '!sun', '!bloom', '!개화'].includes(lower)) return '!sun';
+      if (['!비료', '!골드', '!황금', '!gold'].includes(lower)) return '!gold';
+      if (['!쓰레기', '!피자', '!캔', '!바나나', '!버섯', '!trash', '!pizza', '!can'].includes(lower)) return '!trash';
+      if (['!청소', '!빗자루', '!clean'].includes(lower)) return '!clean';
+      if (['!심기', '!씨앗', '!plant'].includes(lower)) return '!plant';
+      return trimmed;
+    }
+
     // --- Core Event Handler (Dispatches to Garden, Audio, and Renderer) ---
     function handleEvent(event, now = Date.now()) {
       audio.initAudio();
-      const res = garden.apply(event, now);
-      if (event.user && event.text) {
-        addMockChatMessage(event.user, event.text);
+      const rawText = event.text || '';
+      const mappedText = normalizeCommandText(rawText);
+      const normalizedEvent = { ...event, text: mappedText };
+
+      const res = garden.apply(normalizedEvent, now);
+      if (event.user && rawText) {
+        addMockChatMessage(event.user, rawText);
+      }
+
+      if (rawText.includes('ㅋㅋㅋ') || rawText.includes('ㅎㅎㅎ') || mappedText.toLowerCase() === 'lol') {
+        audio.playLaugh();
+        rendererApp.triggerLaughEffect();
       }
 
       if (res.accepted) {
@@ -387,21 +486,28 @@
     // --- Button Bindings & Simulation ---
     const btnToggleMock = document.getElementById('btn-toggle-mock');
     const mockGameScreen = document.getElementById('mock-game-screen');
+    const mockWebcam = document.getElementById('mock-webcam');
+    const mockChat = document.getElementById('mock-chat');
+
     btnToggleMock.addEventListener('click', () => {
       mockActive = !mockActive;
       if (mockActive) {
         mockGameScreen.classList.remove('hidden');
+        if (mockWebcam) mockWebcam.style.display = 'flex';
+        if (mockChat) mockChat.style.display = 'flex';
         btnToggleMock.classList.add('active');
         btnToggleMock.textContent = '🎮 목업 게임 화면 ON';
       } else {
         mockGameScreen.classList.add('hidden');
+        if (mockWebcam) mockWebcam.style.display = 'none';
+        if (mockChat) mockChat.style.display = 'none';
         btnToggleMock.classList.remove('active');
         btnToggleMock.textContent = '👻 투명 OBS 모드';
       }
     });
 
     let localIdx = 1;
-    function getNextViewer() { return 'viewer_' + (localIdx++ % 12 + 1); }
+    function getNextViewer() { return 'viewer_' + (localIdx++); }
 
     document.getElementById('btn-test-water').addEventListener('click', () => {
       handleEvent({ user: getNextViewer(), text: '!물' });
@@ -410,7 +516,7 @@
       handleEvent({ user: getNextViewer(), text: '!햇빛' });
     });
     document.getElementById('btn-test-trash').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!피자' });
+      handleEvent({ user: getNextViewer(), text: '!쓰레기' });
     });
     document.getElementById('btn-test-clean').addEventListener('click', () => {
       handleEvent({ user: getNextViewer(), text: '!청소' });
