@@ -165,15 +165,8 @@ export function createGarden({
       if (command === 'trash') {
         if (trashItems.length >= trashCapacity) trashItems.shift();
         const type = TRASH_TYPES[Math.floor(Math.random() * TRASH_TYPES.length)];
-        const zoneRand = Math.random();
-        let targetX;
-        if (zoneRand < 0.35) {
-          targetX = -0.92 + Math.random() * 0.32;
-        } else if (zoneRand < 0.70) {
-          targetX = 0.60 + Math.random() * 0.32;
-        } else {
-          targetX = -0.55 + Math.random() * 1.1;
-        }
+        // Spread evenly across the entire bottom floor line (no corner clustering!)
+        const targetX = -0.88 + Math.random() * 1.76;
 
         const trash = {
           id: `trash_${++trashSeq}`,
