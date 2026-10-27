@@ -27,31 +27,37 @@ Twitch IRC WebSocket (익명/인증) ──┐
 
 1. **절차적 3D 렌더링 (Three.js)**:
    - 꽃 4종: 새싹(`sprout`), 장미(`rose`), 해바라기(`sunflower`), 황금꽃(`golden`).
+   - 시청자 고유 해시(`traits.hue`)에 따른 동적 꽃잎 HSL 색조 변주.
+   - 꽃 머리 위에 부유하는 반투명 2D 캔버스 닉네임 태그(Nameplate Sprite).
    - 쓰레기 4종: 깡통(`can`), 바나나 껍질(`banana`), 생선 가시(`fishbone`), 잡초(`weed`).
    - 하단 덩굴(Vine): 바닥 곡면을 따라 부드럽게 뻗어나가는 튜브 메쉬.
    - 윈도우 리사이즈 반응형 및 탭 비활성화 후 복귀 시 애니메이션 폭주 방지(Delta Time Capping).
-2. **순수 절차적 오디오 (Web Audio API)**:
+2. **자동 시연 시뮬레이터 (Crowd Demo Simulation)**:
+   - 10여 명의 가상 시청자 페르소나가 참여하는 현실적인 15초 풀 시연 시나리오 내장.
+   - `?demo=1` 또는 상단 [🎬 자동 시연] 버튼 하나로 영상 녹화 및 프리뷰 완결.
+3. **순수 절차적 오디오 (Web Audio API)**:
    - 외부 음원/오디오 파일 의존 0%.
    - 물방울 소리, 차임벨 아르페지오, 캔 부딪힘 충격음, 청소 스윕 사운드, 결산 카드 회전 스우시 합성.
    - 브라우저 자동재생 정책 대응, 볼륨 조절 슬라이더 및 원클릭 음소거 기능 제공.
-3. **3D 결산 카드 (Summary Card) & PNG 다운로드**:
+4. **3D 결산 카드 (Summary Card) & PNG 다운로드**:
    - 세션 누적 활동량(물주기, 청소, 쓰레기, 활성 꽃 수) 및 기여 랭킹 1~5위 자동 집계.
    - 3D 카드가 360도 회전하며 화면 중앙으로 유려하게 등장.
    - 고해상도(960x1280) 무결점 PNG 파일로 즉시 다운로드 가능.
-4. **Twitch IRC 연동**:
+5. **Twitch IRC 연동**:
    - `wss://irc-ws.chat.twitch.tv:443` 기반.
    - **익명 읽기 전용 접속(`justinfan<random>`)** 완벽 지원 (별도 토큰 없이 채널명 입력만으로 즉시 연동).
    - OAuth 토큰 인증 접속도 하위 호환 지원.
    - PING/PONG keepalive, 자동 재연결(지수 백오프), 쿨다운(3초) 및 용량 상한 처리.
-5. **OBS 스튜디오 최적화**:
+6. **OBS 스튜디오 최적화**:
    - 배경 완전 투명 (`alpha: true`, ClearColor 0).
    - OBS 브라우저 소스 URL에 `?obs=1` 쿼리 파라미터를 추가하거나 `H` 키를 누르면 컨트롤 UI가 즉시 숨겨져 투명 오버레이로 전환.
+   - `?channel=스트리머ID`, `?demo=1`, `?names=0`, `?mute=1`, `?volume=0.5` 등 원클릭 설정 쿼리 지원.
 
 ## 실행 및 검증 방법
 
 ### 로컬 테스트 실행
 ```powershell
-# 1. 단위 테스트 실행 (9개 항목 전체 검증)
+# 1. 단위 테스트 실행 (10개 항목 전체 검증)
 node --test tests/core.test.mjs
 
 # 2. 로컬 웹 서버 실행
@@ -59,7 +65,8 @@ python -m http.server 8089
 
 # 3. 브라우저 접속
 # 일반 모드: http://127.0.0.1:8089/index.html
-# OBS 오버레이 모드: http://127.0.0.1:8089/index.html?obs=1
+# 자동 시연 모드: http://127.0.0.1:8089/index.html?demo=1
+# OBS 오버레이 모드: http://127.0.0.1:8089/index.html?obs=1&channel=채널명
 ```
 
 ## 파일 구조
@@ -67,10 +74,12 @@ python -m http.server 8089
 - `index.html`: 투명 오버레이 메인 웹앱 및 컨트롤 바.
 - `src/garden.mjs`: 순수 정원 및 쓰레기장 규칙, 통계 집계, 명령어 파서.
 - `src/twitch-irc.mjs`: 익명/인증 양방향 Twitch WebSocket IRC 어댑터.
+- `src/demo-sim.mjs`: 현실적 시연 영상 녹화 및 프리뷰를 위한 15초 자동 군중 시뮬레이터.
 - `src/audio.mjs`: Web Audio API 기반 신디사이저.
-- `src/renderer.mjs`: Three.js 3D 정원, 쓰레기 물리 낙하, 파티클 렌더러.
+- `src/renderer.mjs`: Three.js 3D 정원, 네임플레이트, 쓰레기 물리 낙하, 파티클 렌더러.
 - `src/summary-card.mjs`: 3D 결산 카드 애니메이션 및 고해상도 PNG 내보내기.
 - `vendor/three.module.js`: 오프라인 로컬 구동을 위한 Three.js ESM 라이브러리.
 - `tests/core.test.mjs`: 코어 로직 및 통신 단위 테스트.
-- `PROJECT_SPEC.md`: 프로젝트 전체 명세서.
+- `PROJECT_SPEC.md`: 프로젝트 전체 기술 명세서.
+- `SUBMISSION.md`: Devpost 공식 제출 폼 텍스트 및 3분 영상 녹화 대본.
 

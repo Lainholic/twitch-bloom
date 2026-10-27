@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGarden, parseCommand, flowerTraits } from '../src/garden.mjs';
 import { parseIrc, connectTwitch } from '../src/twitch-irc.mjs';
+import { createDemoSimulation } from '../src/demo-sim.mjs';
 
 test('commands must match the whole message', () => {
   assert.equal(parseCommand(' !PLANT '), 'plant');
@@ -138,4 +139,35 @@ test('adapter connects anonymously when no token is provided', () => {
     stop();
   }
 });
+
+test('demo simulation dispatches scripted events and stops cleanly', async () => {
+  const events = [];
+  let shownCard = false;
+  const fakeCard = { isVisible: () => shownCard, show: () => { shownCard = true; } };
+
+  const sim = createDemoSimulation({
+    handleEvent: (e) => events.push(e),
+    summaryCard: fakeCard,
+    onStep: () => {}
+  });
+
+  assert.equal(sim.isRunning(), false);
+  sim.start();
+  assert.equal(sim.isRunning(), true);
+
+  // Wait 400ms for first step to trigger
+  await new Promise(r => setTimeout(r, 450));
+  assert.ok(events.length >= 1);
+  assert.equal(events[0].user, 'green_thumb');
+  assert.equal(events[0].text, '!water');
+
+  sim.stop();
+  assert.equal(sim.isRunning(), false);
+  const countAfterStop = events.length;
+
+  // Ensure no more events fire after stop
+  await new Promise(r => setTimeout(r, 700));
+  assert.equal(events.length, countAfterStop);
+});
+
 

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Twitch Bloom & Junkyard - OBS Overlay</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -81,6 +82,8 @@
       <button id="btn-test-water" class="btn-water">💧 !water</button>
       <button id="btn-test-trash" class="btn-trash">🥫 !trash</button>
       <button id="btn-test-clean" class="btn-clean">✨ !clean</button>
+      <button id="btn-auto-demo" class="btn-primary" style="background:#059669; border-color:#34d399;">🎬 자동 시연</button>
+      <button id="btn-toggle-names">🏷️ 닉네임 ON</button>
       <button id="btn-toggle-card" class="btn-card">🏆 결산 카드</button>
       <button id="btn-download-png" style="display:none;">💾 PNG 저장</button>
     </div>
@@ -99,6 +102,7 @@
     import { connectTwitch } from './src/twitch-irc.mjs';
     import { createRenderer } from './src/renderer.mjs';
     import { createSummaryCard } from './src/summary-card.mjs';
+    import { createDemoSimulation } from './src/demo-sim.mjs';
     import * as audio from './src/audio.mjs';
 
     const garden = createGarden({ autoPlant: true });
@@ -136,7 +140,45 @@
       return res;
     }
 
-    window.twitchBloom = { garden, handleEvent, summaryCard, rendererApp, audio };
+    // Demo Simulation Engine
+    const btnAutoDemo = document.getElementById('btn-auto-demo');
+    const demoSim = createDemoSimulation({
+      handleEvent,
+      summaryCard,
+      getStats: () => garden.getStats(),
+      onStep: ({ starting, finished, stopped, step, currentStep, total }) => {
+        if (starting) {
+          btnAutoDemo.textContent = '⏹ 시연 정지';
+          btnAutoDemo.style.background = '#e11d48';
+          btnAutoDemo.style.borderColor = '#fb7185';
+        } else if (finished || stopped) {
+          btnAutoDemo.textContent = '🎬 자동 시연';
+          btnAutoDemo.style.background = '#059669';
+          btnAutoDemo.style.borderColor = '#34d399';
+        }
+      }
+    });
+
+    btnAutoDemo.addEventListener('click', () => {
+      audio.initAudio();
+      if (demoSim.isRunning()) {
+        demoSim.stop();
+      } else {
+        demoSim.start();
+      }
+    });
+
+    // Nameplate Toggle
+    const btnToggleNames = document.getElementById('btn-toggle-names');
+    let namesVisible = true;
+    btnToggleNames.addEventListener('click', () => {
+      namesVisible = !namesVisible;
+      rendererApp.setNameplatesVisible(namesVisible);
+      btnToggleNames.textContent = namesVisible ? '🏷️ 닉네임 ON' : '🏷️ 닉네임 OFF';
+      btnToggleNames.style.color = namesVisible ? '#f8fafc' : '#94a3b8';
+    });
+
+    window.twitchBloom = { garden, handleEvent, summaryCard, rendererApp, audio, demoSim };
 
     let localIdx = 1;
     function getNextViewer() { return 'viewer_' + (localIdx++ % 6 + 1); }
@@ -207,6 +249,27 @@
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('obs') === '1' || urlParams.get('overlay') === '1') {
       uiContainer.classList.add('hidden');
+    }
+
+    if (urlParams.get('names') === '0' || urlParams.get('nameplates') === '0') {
+      btnToggleNames.click();
+    }
+
+    if (urlParams.get('mute') === '1') {
+      btnMute.click();
+    }
+
+    const initialVolume = urlParams.get('volume');
+    if (initialVolume !== null) {
+      const volVal = Math.max(0, Math.min(1, parseFloat(initialVolume) || 0.5));
+      volumeSlider.value = volVal;
+      audio.setVolume(volVal);
+    }
+
+    if (urlParams.get('demo') === '1' || urlParams.get('autodemo=1') || urlParams.get('autodemo') === '1') {
+      setTimeout(() => {
+        btnAutoDemo.click();
+      }, 800);
     }
 
     const defaultChannel = urlParams.get('channel');

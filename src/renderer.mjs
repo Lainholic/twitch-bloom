@@ -3,11 +3,61 @@ import * as THREE from '../vendor/three.module.js';
 // Shared Materials & Palettes for high performance
 const stemMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.6 });
 const leafMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.5 });
-const rosePetalMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.4 });
 const sunCenterMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
-const sunPetalMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4 });
 const goldStemMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.6, roughness: 0.3 });
-const goldPetalMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, metalness: 0.8, roughness: 0.2 });
+
+// Dynamic Flower Petal Materials based on traits hue
+function createPetalMaterial(baseColorHex, hueOffset = 0, metalness = 0, roughness = 0.4) {
+  const color = new THREE.Color(baseColorHex);
+  if (hueOffset !== 0) {
+    const hsl = {};
+    color.getHSL(hsl);
+    hsl.h = (hsl.h + (hueOffset % 60 - 30) / 360 + 1) % 1;
+    color.setHSL(hsl.h, hsl.s, hsl.l);
+  }
+  return new THREE.MeshStandardMaterial({ color, metalness, roughness });
+}
+
+// Nameplate Sprite Generator (Canvas-based high-DPI text tag)
+const nameplateCache = new Map();
+export function createNameplateSprite(text) {
+  const cleanName = (text || '').slice(0, 16);
+  if (nameplateCache.has(cleanName)) {
+    return nameplateCache.get(cleanName).clone();
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+
+  // Background pill
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+  ctx.beginPath();
+  ctx.roundRect(8, 8, 240, 48, 24);
+  ctx.fill();
+
+  // Subtle border
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Text
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillText(cleanName, 128, 32);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(spriteMat);
+  sprite.scale.set(0.85, 0.21, 1);
+
+  nameplateCache.set(cleanName, sprite);
+  return sprite.clone();
+}
 
 // Trash Materials
 const canMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.3 });
@@ -53,17 +103,20 @@ export function createRoseMesh(traits) {
   leaf.rotation.set(0.3, 0.2, -0.5);
   group.add(leaf);
 
+  // Dynamic tinted petal material
+  const petalMat = createPetalMaterial(0xf43f5e, traits?.hue || 0, 0, 0.4);
+
   // Rose bud / flower layers
   const head = new THREE.Group();
   head.position.y = stemH;
   for (let i = 0; i < 7; i++) {
     const angle = (i / 7) * Math.PI * 2;
-    const petal = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 6), rosePetalMat);
+    const petal = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 6), petalMat);
     petal.position.set(Math.cos(angle) * 0.1, 0.1, Math.sin(angle) * 0.1);
     petal.rotation.set(Math.sin(angle) * 0.5, angle, -Math.cos(angle) * 0.5);
     head.add(petal);
   }
-  const centerBud = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), rosePetalMat);
+  const centerBud = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), petalMat);
   centerBud.position.y = 0.12;
   head.add(centerBud);
   group.add(head);
@@ -85,11 +138,14 @@ export function createSunflowerMesh(traits) {
   center.rotation.x = Math.PI / 2;
   head.add(center);
 
+  // Dynamic tinted petal material
+  const petalMat = createPetalMaterial(0xfacc15, traits?.hue || 0, 0, 0.35);
+
   // Radial petals
   const petalCount = traits?.petals || 10;
   for (let i = 0; i < petalCount; i++) {
     const angle = (i / petalCount) * Math.PI * 2;
-    const petal = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.35, 6), sunPetalMat);
+    const petal = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.35, 6), petalMat);
     petal.position.set(Math.cos(angle) * 0.34, Math.sin(angle) * 0.34, 0);
     petal.rotation.z = angle - Math.PI / 2;
     head.add(petal);
@@ -108,6 +164,8 @@ export function createGoldenMesh(traits) {
 
   const head = new THREE.Group();
   head.position.y = stemH;
+
+  const goldPetalMat = createPetalMaterial(0xfef08a, traits?.hue || 0, 0.8, 0.2);
 
   const core = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), goldPetalMat);
   head.add(core);
@@ -250,6 +308,16 @@ export function createRenderer({ canvas, onSceneReady = () => {} } = {}) {
     return createSproutMesh(traits);
   }
 
+  let nameplatesEnabled = true;
+
+  function getFlowerTopY(growth, blooming, traits) {
+    const h = traits?.height || 1;
+    if (blooming || growth >= 3) return 1.35 * h + 0.3;
+    if (growth === 2) return 1.15 * h + 0.25;
+    if (growth === 1) return 0.85 * h + 0.25;
+    return 0.55 * h + 0.2;
+  }
+
   function syncFlowers(flowers) {
     const activeOwners = new Set();
     const totalSlots = Math.max(1, flowers.length);
@@ -264,9 +332,17 @@ export function createRenderer({ canvas, onSceneReady = () => {} } = {}) {
         const mesh = buildFlowerMesh(f.growth, f.blooming, f.traits);
         mesh.position.set(slotX, -2.2, (Math.random() * 0.4 - 0.2));
         mesh.scale.set(0.01, 0.01, 0.01);
+
+        // Nameplate tag
+        const nameplate = createNameplateSprite(f.owner);
+        nameplate.position.y = getFlowerTopY(f.growth, f.blooming, f.traits);
+        nameplate.visible = nameplatesEnabled;
+        mesh.add(nameplate);
+
         flowersGroup.add(mesh);
         record = {
           mesh,
+          nameplate,
           growth: f.growth,
           blooming: f.blooming,
           traits: f.traits,
@@ -283,8 +359,16 @@ export function createRenderer({ canvas, onSceneReady = () => {} } = {}) {
         const newMesh = buildFlowerMesh(f.growth, f.blooming, f.traits);
         newMesh.position.copy(record.mesh.position);
         newMesh.scale.set(0.2, 0.2, 0.2);
+
+        // Update nameplate position
+        const nameplate = createNameplateSprite(f.owner);
+        nameplate.position.y = getFlowerTopY(f.growth, f.blooming, f.traits);
+        nameplate.visible = nameplatesEnabled;
+        newMesh.add(nameplate);
+
         flowersGroup.add(newMesh);
         record.mesh = newMesh;
+        record.nameplate = nameplate;
         record.growth = f.growth;
         record.blooming = f.blooming;
         record.currentScale = 0.2;
@@ -415,6 +499,12 @@ export function createRenderer({ canvas, onSceneReady = () => {} } = {}) {
     syncGarden: (flowerList) => {
       syncFlowers(flowerList || []);
       syncTrash(flowerList?.trash || []);
+    },
+    setNameplatesVisible: (visible) => {
+      nameplatesEnabled = !!visible;
+      for (const rec of flowersMap.values()) {
+        if (rec.nameplate) rec.nameplate.visible = nameplatesEnabled;
+      }
     },
     spawnSparkles
   };

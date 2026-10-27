@@ -21,7 +21,8 @@ export function createSummaryCard({ onDownloadComplete = () => {} } = {}) {
   let isShowing = false;
   let animProgress = 0;
 
-  function drawCard(stats) {
+  function drawCard(rawStats) {
+    const stats = rawStats || {};
     ctx.clearRect(0, 0, 960, 1280);
     const bg = ctx.createLinearGradient(0, 0, 0, 1280);
     bg.addColorStop(0, '#0f172a'); bg.addColorStop(0.5, '#1e293b'); bg.addColorStop(1, '#090d16');
