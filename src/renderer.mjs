@@ -77,7 +77,6 @@ export function createRenderer({ canvas }) {
   const flowersMap = new Map();
   const trashMap = new Map();
   const activeTrashList = [];
-  const potionsList = [];
   const particles = [];
   const fireflies = [];
   let nameplatesEnabled = true;
@@ -118,36 +117,6 @@ export function createRenderer({ canvas }) {
   function spawnParticle(x, y, vx, vy, color, size = 4, maxLife = 0.8, shape = 'square') {
     if (particles.length > 180) particles.shift();
     particles.push({ x, y, vx, vy, color, size, life: 0, maxLife, shape });
-  }
-
-  function spawnPotion(customX = null) {
-    const floorY = getFloorY();
-    const posX = (customX !== null) ? customX : (200 + Math.random() * (width - 400));
-    const startY = -40 - Math.random() * 50;
-    const targetFloorOffset = (Math.random() - 0.5) * 12;
-    const targetAngle = ((Math.random() - 0.5) * Math.PI) * 0.25;
-
-    const potionRecord = {
-      id: 'potion_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      x: posX,
-      y: startY,
-      targetY: floorY - 14 + targetFloorOffset,
-      vx: (Math.random() - 0.5) * 50,
-      vy: 200 + Math.random() * 100,
-      rot: (Math.random() - 0.5) * 1.5,
-      vRot: (Math.random() - 0.5) * 4.0,
-      targetRot: targetAngle,
-      bounceCount: 0,
-      isResting: false,
-      scale: ASSET_BASE_SCALE.potion * (0.95 + Math.random() * 0.1),
-      glowPhase: Math.random() * Math.PI * 2,
-    };
-    potionsList.push(potionRecord);
-    if (potionsList.length > 12) potionsList.shift();
-
-    for (let i = 0; i < 8; i++) {
-      spawnParticle(posX, 40, (Math.random() - 0.5) * 60, Math.random() * 70, '#c084fc', 4, 1.0, 'sparkle');
-    }
   }
 
   function syncFlowers(flowers) {
@@ -250,13 +219,15 @@ export function createRenderer({ canvas }) {
         else if (item.type === 'battery') spriteKey = 'battery';
         else if (item.type === 'apple' || item.type === 'core') spriteKey = 'appleCore';
         else if (item.type === 'clover') spriteKey = 'clover';
+        else if (item.type === 'potion') spriteKey = 'potion';
         else {
-          const pool = ['pizza', 'crushedCan', 'bananaPeel', 'poisonMushroom', 'fishbone', 'coffeecup', 'battery', 'appleCore', 'clover'];
+          const pool = ['pizza', 'crushedCan', 'bananaPeel', 'poisonMushroom', 'fishbone', 'coffeecup', 'battery', 'appleCore', 'clover', 'potion'];
           spriteKey = pool[Math.floor(Math.random() * pool.length)];
         }
 
         const baseSc = ASSET_BASE_SCALE[spriteKey] || 0.65;
-        const scaleVal = baseSc * (0.90 + Math.random() * 0.20);
+        const scaleVal = baseSc * (0.85 + Math.random() * 0.35);
+        const flipH = Math.random() > 0.5;
 
         record = {
           id: item.id, type: item.type, spriteKey, x: posX, y: startY,
@@ -265,6 +236,7 @@ export function createRenderer({ canvas }) {
           rot: Math.random() * Math.PI * 2, vRot: (Math.random() - 0.5) * 7.0,
           targetRot: targetAngle, bounceCount: 0, isResting: false,
           scale: scaleVal,
+          flipH: flipH,
         };
         trashMap.set(item.id, record);
         activeTrashList.push(record);
@@ -313,17 +285,10 @@ export function createRenderer({ canvas }) {
     for (let i = 0; i < 40; i++) {
       spawnParticle((i / 40) * width + (Math.random() - 0.5) * 40, floorY - 10 + (Math.random() - 0.5) * 25, (Math.random() - 0.5) * 160, -Math.random() * 140 - 50, '#4ade80', 5, 0.8);
     }
-    for (const p of potionsList) {
-      for (let i = 0; i < 6; i++) {
-        spawnParticle(p.x, p.y, (Math.random() - 0.5) * 60, -Math.random() * 80 - 20, '#c084fc', 4, 0.7, 'sparkle');
-      }
-    }
-    potionsList.length = 0;
   }
 
   function triggerGoldEffect() {
     growVines(0.40, 'sun');
-    spawnPotion();
     const floorY = getFloorY();
     for (let i = 0; i < 28; i++) {
       fireflies.push({
@@ -381,37 +346,6 @@ export function createRenderer({ canvas }) {
           item.vy = 0; item.vx = 0; item.vRot = 0;
           item.rot = item.targetRot;
           item.isResting = true;
-        }
-      }
-    }
-
-    // Update Potions physics & magical glow/sparkle
-    for (let i = 0; i < potionsList.length; i++) {
-      const p = potionsList[i];
-      p.glowPhase += dt * 3.2;
-      if (!p.isResting) {
-        p.vy += 600 * dt;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.rot += p.vRot * dt;
-
-        if (p.y >= p.targetY) {
-          p.y = p.targetY;
-          if (Math.abs(p.vy) > 70 && p.bounceCount < 2) {
-            p.vy = -p.vy * 0.36;
-            p.vx *= 0.6;
-            p.vRot *= 0.5;
-            p.bounceCount++;
-            spawnParticle(p.x, p.y + 6, (Math.random() - 0.5) * 30, -25, '#c084fc', 3, 0.4, 'sparkle');
-          } else {
-            p.vy = 0; p.vx = 0; p.vRot = 0;
-            p.rot = p.targetRot;
-            p.isResting = true;
-          }
-        }
-      } else {
-        if (Math.random() < 0.04) {
-          spawnParticle(p.x + (Math.random() - 0.5) * 16, p.y - 10, (Math.random() - 0.5) * 14, -Math.random() * 25 - 8, '#e879f9', 3, 0.8, 'sparkle');
         }
       }
     }
@@ -612,18 +546,10 @@ export function createRenderer({ canvas }) {
       drawNameplate(record.owner, record.x, record.y - (20 * (record.scale / 0.85)), record.isGold);
     }
 
-    // 6. Dynamic Falling/Stacked Trash
+    // 6. Dynamic Falling/Stacked Trash (including potion bottles, pizza, cans, etc.)
     for (const item of activeTrashList) {
       const img = images[item.spriteKey] || images.crushedCan;
-      drawSprite(img, item.x, item.y, item.scale, item.rot);
-    }
-
-    // 6-1. Magical Potion Bottles (Glowing and Sparkly!)
-    for (const p of potionsList) {
-      if (images.potion && images.potion.complete) {
-        const glowPulse = 0.85 + Math.sin(p.glowPhase) * 0.15;
-        drawSprite(images.potion, p.x, p.y, p.scale, p.rot, false, glowPulse);
-      }
+      drawSprite(img, item.x, item.y, item.scale, item.rot, item.flipH);
     }
 
     // 7. Particles
@@ -684,7 +610,7 @@ export function createRenderer({ canvas }) {
 
   return {
     scene, camera, renderer,
-    syncFlowers, syncTrash, spawnPotion,
+    syncFlowers, syncTrash,
     triggerWaterEffect, triggerSunEffect, triggerCleanEffect, triggerGoldEffect, triggerLaughEffect,
     toggleNameplates, update,
   };

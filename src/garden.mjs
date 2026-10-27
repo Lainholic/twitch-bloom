@@ -1,5 +1,5 @@
 // Pure garden and junkyard rules. Rendering and network code never own state.
-export const TRASH_TYPES = ['pizza', 'can', 'banana', 'fishbone', 'paper', 'mushroom'];
+export const TRASH_TYPES = ['pizza', 'can', 'banana', 'fishbone', 'paper', 'mushroom', 'potion'];
 export const FLOWER_TYPES = ['sprout', 'rose', 'sunflower', 'wildflower', 'golden'];
 
 export function parseCommand(text) {
@@ -14,17 +14,13 @@ export function parseCommand(text) {
   if (/^!(?:햇빛|sun)\b/i.test(t) || t.includes('☀️')) {
     return 'sun';
   }
-  // Trash
-  if (/^!(?:쓰레기|trash|피자|깡통)\b/i.test(t) || t.includes('🗑️') || t.includes('🍕') || t.includes('🥫')) {
+  // Trash (including fertilizer & potion per user instruction!)
+  if (/^!(?:쓰레기|trash|피자|깡통|비료|gold|황금|물약|포션|potion)\b/i.test(t) || t.includes('🗑️') || t.includes('🍕') || t.includes('🥫') || t.includes('🧪') || t.includes('✨')) {
     return 'trash';
   }
   // Clean
   if (/^!(?:청소|clean)\b/i.test(t) || t.includes('🧹')) {
     return 'clean';
-  }
-  // Special Gold / Fertilizer
-  if (/^!(?:비료|gold|황금)\b/i.test(t) || t.includes('✨') || t.includes('🌟')) {
-    return 'gold';
   }
   // Laughter / Shake
   if (/(?:ㅋㅋㅋㅋ|lol|lul|lmao)/i.test(t)) {
@@ -164,7 +160,10 @@ export function createGarden({
       // 1. Trash command
       if (command === 'trash') {
         if (trashItems.length >= trashCapacity) trashItems.shift();
-        const type = TRASH_TYPES[Math.floor(Math.random() * TRASH_TYPES.length)];
+        let type = TRASH_TYPES[Math.floor(Math.random() * TRASH_TYPES.length)];
+        if (/!(?:물약|포션|potion|비료|gold|황금)/i.test(text || '')) {
+          type = 'potion';
+        }
         // Spread evenly across the entire bottom floor line (no corner clustering!)
         const targetX = -0.88 + Math.random() * 1.76;
 

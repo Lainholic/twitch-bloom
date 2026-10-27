@@ -174,8 +174,7 @@
       <button id="btn-test-sun" class="btn-sun">☀️ !햇빛</button>
       <button id="btn-test-trash" class="btn-trash">🥫 !쓰레기</button>
       <button id="btn-test-clean" class="btn-clean">🧹 !청소</button>
-      <button id="btn-test-gold" class="btn-gold">✨ !비료</button>
-      <button id="btn-test-potion" class="btn-gold" style="background:#7e22ce; border-color:#c084fc;">🧪 !물약</button>
+      <button id="btn-test-gold" class="btn-trash" style="background:#7e22ce; border-color:#c084fc;">🧪 !물약/비료</button>
       <button id="btn-test-laugh">😂 ㅋㅋㅋㅋ</button>
     </div>
 
@@ -408,8 +407,7 @@
       const lower = trimmed.toLowerCase();
       if (['!물', '!물주기', '!water'].includes(lower)) return '!water';
       if (['!햇빛', '!해', '!햇살', '!sun', '!bloom', '!개화'].includes(lower)) return '!sun';
-      if (['!비료', '!골드', '!황금', '!gold', '!포션', '!물약', '!potion'].includes(lower)) return '!gold';
-      if (['!쓰레기', '!피자', '!캔', '!바나나', '!버섯', '!생선', '!가시', '!커피', '!종이컵', '!배터리', '!사과', '!trash', '!pizza', '!can', '!fish', '!coffee', '!battery', '!apple', '!clover'].includes(lower)) return '!trash';
+      if (['!쓰레기', '!피자', '!캔', '!바나나', '!버섯', '!생선', '!가시', '!커피', '!종이컵', '!배터리', '!사과', '!clover', '!비료', '!골드', '!황금', '!gold', '!포션', '!물약', '!potion', '!trash', '!pizza', '!can', '!fish', '!coffee', '!battery', '!apple'].includes(lower)) return '!trash';
       if (['!청소', '!빗자루', '!clean'].includes(lower)) return '!clean';
       if (['!심기', '!씨앗', '!plant'].includes(lower)) return '!plant';
       return trimmed;
@@ -522,12 +520,18 @@
     document.getElementById('btn-test-clean').addEventListener('click', () => {
       handleEvent({ user: getNextViewer(), text: '!청소' });
     });
-    document.getElementById('btn-test-gold').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!비료' });
-    });
-    document.getElementById('btn-test-potion').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!물약' });
-    });
+    const btnTestGold = document.getElementById('btn-test-gold');
+    if (btnTestGold) {
+      btnTestGold.addEventListener('click', () => {
+        handleEvent({ user: getNextViewer(), text: '!물약' });
+      });
+    }
+    const btnTestPotion = document.getElementById('btn-test-potion');
+    if (btnTestPotion) {
+      btnTestPotion.addEventListener('click', () => {
+        handleEvent({ user: getNextViewer(), text: '!물약' });
+      });
+    }
     document.getElementById('btn-test-laugh').addEventListener('click', () => {
       handleEvent({ user: getNextViewer(), text: 'ㅋㅋㅋㅋ' });
     });
