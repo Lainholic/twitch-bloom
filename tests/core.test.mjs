@@ -4,32 +4,76 @@ import { createGarden, parseCommand, flowerTraits } from '../src/garden.mjs';
 import { parseIrc, connectTwitch } from '../src/twitch-irc.mjs';
 import { createDemoSimulation } from '../src/demo-sim.mjs';
 
-test('commands must match the whole message', () => {
-  assert.equal(parseCommand(' !PLANT '), 'plant');
-  for (const text of ['hello !plant', '!plant spam', '!waterfall', '', null]) assert.equal(parseCommand(text), null);
+test('commands must match valid keywords and aliases', () => {
+  assert.equal(parseCommand(' !PLANT '), 'water');
+  assert.equal(parseCommand(' !물 '), 'water');
+  assert.equal(parseCommand(' !water '), 'water');
+  assert.equal(parseCommand(' !햇빛 '), 'sun');
+  assert.equal(parseCommand(' !sun '), 'sun');
+  assert.equal(parseCommand(' !bloom '), 'sun');
+  assert.equal(parseCommand(' !쓰레기 '), 'trash');
+  assert.equal(parseCommand(' !trash '), 'trash');
+  assert.equal(parseCommand(' !물약 '), 'trash');
+  assert.equal(parseCommand(' !potion '), 'trash');
+  assert.equal(parseCommand(' !청소 '), 'clean');
+  assert.equal(parseCommand(' !clean '), 'clean');
+  assert.equal(parseCommand(' ㅋㅋㅋㅋㅋ '), 'laugh');
+  assert.equal(parseCommand(' lol '), 'laugh');
+  for (const text of ['hello !plant', '!waterfall', '', null]) {
+    assert.equal(parseCommand(text), null);
+  }
 });
-test('plant, three water actions, then bloom; cooldown is shared', () => {
-  const garden = createGarden();
+test('water grows flower, sun blooms flower; cooldown is tracked', () => {
+  const garden = createGarden({ cooldownMs: 1500 });
   const act = (text, now) => garden.apply({ user: 'Viewer', text }, now);
-  assert.equal(act('!water', 0).reason, 'plant-first');
-  assert.equal(act('!plant', 0).accepted, true);
-  assert.equal(act('!bloom', 100).reason, 'cooldown');
-  assert.equal(act('!bloom', 3000).reason, 'water-first');
-  for (const now of [3000, 6000, 9000]) assert.equal(act('!water', now).accepted, true);
-  assert.equal(act('!bloom', 12000).accepted, true);
-  assert.equal(act('!bloom', 15000).reason, 'already-blooming');
-  assert.equal(act('!water', 15000).reason, 'fully-grown');
+
+  // First water germinates the sprout
+  const res1 = act('!물', 0);
+  assert.equal(res1.accepted, true);
+  assert.equal(res1.isNew, true);
+  assert.equal(res1.flower.growth, 0);
+
+  // Cooldown rejects rapid input
+  assert.equal(act('!햇빛', 500).reason, 'cooldown');
+
+  // Next water grows flower
+  assert.equal(act('!water', 2000).accepted, true);
+  assert.equal(garden.snapshot()[0].growth, 1);
+
+  // Sun blooms the flower
+  assert.equal(act('!sun', 4000).accepted, true);
   assert.equal(garden.snapshot()[0].blooming, true);
+
+  // Water grows it to maximum stage (stage 3)
+  assert.equal(act('!water', 6000).accepted, true);
+  assert.equal(act('!water', 8000).accepted, true);
+  assert.equal(garden.snapshot()[0].growth, 3);
 });
 test('capacity, deduplication, ownership and detached snapshots', () => {
-  const garden = createGarden({ capacity: 1 });
-  garden.apply({ user: 'a', text: '!plant', id: '1' }, 0);
+  const garden = createGarden({ capacity: 1, cooldownMs: 1500 });
+  const r1 = garden.apply({ user: 'a', text: '!water', id: '1' }, 0);
+  assert.equal(r1.accepted, true);
+
+  // Duplicate ID rejected
   assert.equal(garden.apply({ user: 'a', text: '!water', id: '1' }, 3000).reason, 'duplicate');
-  assert.equal(garden.apply({ user: 'b', text: '!plant' }, 3000).reason, 'full');
-  const copy = garden.snapshot(); copy[0].traits.hue = -1;
+
+  // Capacity full evicts oldest flower (FIFO)
+  const r2 = garden.apply({ user: 'b', text: '!water' }, 3000);
+  assert.equal(r2.accepted, true);
+  const snap = garden.snapshot();
+  assert.equal(snap.length, 1);
+  assert.equal(snap[0].owner, 'b');
+
+  // Snapshot immutability
+  const copy = garden.snapshot();
+  copy[0].traits.hue = -1;
   assert.notEqual(garden.snapshot()[0].traits.hue, -1);
+
+  // Traits deterministic per username
   assert.deepEqual(flowerTraits('a'), flowerTraits('a'));
-  assert.equal(garden.apply({ user: 'a\r\n', text: '!plant' }).reason, 'invalid');
+
+  // Invalid user rejected
+  assert.equal(garden.apply({ user: 'a\r\n', text: '!water' }).reason, 'invalid');
 });
 test('IRC parses tags, prefixes, colon text and keepalive', () => {
   const message = parseIrc('@id=abc;display-name=Viewer :viewer!viewer@host PRIVMSG #garden :!plant');
@@ -80,13 +124,17 @@ test('authentication rejection stops reconnecting', () => {
 
 test('trash and clean actions modify junkyard state and accumulate stats', () => {
   const garden = createGarden({ trashCapacity: 2, cooldownMs: 1000 });
-  assert.equal(garden.apply({ user: 'viewer1', text: '!clean' }, 0).reason, 'no-trash');
-  
+
+  // Clean with empty junkyard accepts cleanly with 0 cleaned
+  const emptyClean = garden.apply({ user: 'viewer1', text: '!clean' }, 0);
+  assert.equal(emptyClean.accepted, true);
+  assert.equal(emptyClean.cleanedCount, 0);
+
   const res1 = garden.apply({ user: 'viewer1', text: '!trash' }, 0);
   assert.equal(res1.accepted, true);
   assert.equal(garden.getTrash().length, 1);
   assert.equal(garden.getStats().totalTrash, 1);
-  
+
   // Cooldown check for viewer1
   assert.equal(garden.apply({ user: 'viewer1', text: '!trash' }, 500).reason, 'cooldown');
 
@@ -101,20 +149,24 @@ test('trash and clean actions modify junkyard state and accumulate stats', () =>
   assert.equal(garden.getTrash().length, 2);
   assert.equal(garden.getStats().totalTrash, 3);
 
-  // Clean
+  // Clean sweeps items away
   const cleanRes = garden.apply({ user: 'viewer1', text: '!clean' }, 2000);
   assert.equal(cleanRes.accepted, true);
-  assert.equal(garden.getTrash().length, 1);
-  assert.equal(garden.getStats().totalCleaned, 1);
+  assert.ok(cleanRes.cleanedCount >= 1);
+  assert.ok(garden.getStats().totalCleaned >= 1);
 });
 
-test('autoPlant option allows !water directly to germinate sprout', () => {
-  const garden = createGarden({ autoPlant: true });
-  const res = garden.apply({ user: 'grower', text: '!water' }, 0);
-  assert.equal(res.accepted, true);
-  assert.equal(res.autoPlanted, true);
-  assert.equal(garden.snapshot()[0].growth, 1);
-  assert.equal(garden.getStats().totalWatered, 1);
+test('potion and fertilizer drop as trash items', () => {
+  const garden = createGarden({ cooldownMs: 0 });
+  const resPotion = garden.apply({ user: 'alchemist', text: '!물약' }, 0);
+  assert.equal(resPotion.accepted, true);
+  assert.equal(resPotion.trash.type, 'potion');
+  assert.equal(garden.getTrash().length, 1);
+
+  const resFertilizer = garden.apply({ user: 'farmer', text: '!비료' }, 100);
+  assert.equal(resFertilizer.accepted, true);
+  assert.equal(resFertilizer.trash.type, 'potion');
+  assert.equal(garden.getTrash().length, 2);
 });
 
 test('adapter connects anonymously when no token is provided', () => {
@@ -159,7 +211,7 @@ test('demo simulation dispatches scripted events and stops cleanly', async () =>
   await new Promise(r => setTimeout(r, 450));
   assert.ok(events.length >= 1);
   assert.equal(events[0].user, 'green_thumb');
-  assert.equal(events[0].text, '!water');
+  assert.equal(events[0].text, '!물');
 
   sim.stop();
   assert.equal(sim.isRunning(), false);

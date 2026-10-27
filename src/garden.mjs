@@ -7,19 +7,19 @@ export function parseCommand(text) {
   const t = text.trim();
 
   // Water / Growth
-  if (/^!(?:물|water)\b/i.test(t) || t.includes('💧')) {
+  if (/^!(?:물|water)(?:\s|$)/i.test(t) || t.includes('💧')) {
     return 'water';
   }
   // Sunlight / Bloom
-  if (/^!(?:햇빛|sun)\b/i.test(t) || t.includes('☀️')) {
+  if (/^!(?:햇빛|sun)(?:\s|$)/i.test(t) || t.includes('☀️')) {
     return 'sun';
   }
   // Trash (including fertilizer & potion per user instruction!)
-  if (/^!(?:쓰레기|trash|피자|깡통|비료|gold|황금|물약|포션|potion)\b/i.test(t) || t.includes('🗑️') || t.includes('🍕') || t.includes('🥫') || t.includes('🧪') || t.includes('✨')) {
+  if (/^!(?:쓰레기|trash|피자|깡통|비료|gold|황금|물약|포션|potion)(?:\s|$)/i.test(t) || t.includes('🗑️') || t.includes('🍕') || t.includes('🥫') || t.includes('🧪') || t.includes('✨')) {
     return 'trash';
   }
   // Clean
-  if (/^!(?:청소|clean)\b/i.test(t) || t.includes('🧹')) {
+  if (/^!(?:청소|clean)(?:\s|$)/i.test(t) || t.includes('🧹')) {
     return 'clean';
   }
   // Laughter / Shake
@@ -28,8 +28,8 @@ export function parseCommand(text) {
   }
 
   // Legacy fallback
-  if (/^!plant\b/i.test(t)) return 'water';
-  if (/^!bloom\b/i.test(t)) return 'sun';
+  if (/^!plant(?:\s|$)/i.test(t)) return 'water';
+  if (/^!bloom(?:\s|$)/i.test(t)) return 'sun';
 
   return null;
 }
