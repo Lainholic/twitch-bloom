@@ -15,6 +15,25 @@ const ASSET_SRCS = {
   poisonMushroom: './assets/poison_mushroom.png',
   flowerBloom: './assets/flower_bloom.png',
   goldenFlower: './assets/golden_flower.png',
+  potion: './assets/potion.svg',
+  fishbone: './assets/fishbone.svg',
+  clover: './assets/clover.svg',
+  coffeecup: './assets/coffeecup.svg',
+  battery: './assets/battery.svg',
+  appleCore: './assets/apple_core.svg',
+};
+
+const ASSET_BASE_SCALE = {
+  potion: 0.38,
+  fishbone: 0.36,
+  clover: 0.36,
+  coffeecup: 0.36,
+  battery: 0.36,
+  appleCore: 0.36,
+  pizza: 0.95,
+  crushedCan: 0.95,
+  bananaPeel: 0.95,
+  poisonMushroom: 0.95,
 };
 
 const images = {};
@@ -57,6 +76,7 @@ export function createRenderer({ canvas }) {
   const flowersMap = new Map();
   const trashMap = new Map();
   const activeTrashList = [];
+  const potionsList = [];
   const particles = [];
   const fireflies = [];
   let nameplatesEnabled = true;
@@ -99,6 +119,36 @@ export function createRenderer({ canvas }) {
     particles.push({ x, y, vx, vy, color, size, life: 0, maxLife, shape });
   }
 
+  function spawnPotion(customX = null) {
+    const floorY = getFloorY();
+    const posX = (customX !== null) ? customX : (200 + Math.random() * (width - 400));
+    const startY = -40 - Math.random() * 50;
+    const targetFloorOffset = (Math.random() - 0.5) * 14;
+    const targetAngle = ((Math.random() - 0.5) * Math.PI) * 0.25;
+
+    const potionRecord = {
+      id: 'potion_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      x: posX,
+      y: startY,
+      targetY: floorY - 14 + targetFloorOffset,
+      vx: (Math.random() - 0.5) * 50,
+      vy: 200 + Math.random() * 100,
+      rot: (Math.random() - 0.5) * 1.5,
+      vRot: (Math.random() - 0.5) * 4.0,
+      targetRot: targetAngle,
+      bounceCount: 0,
+      isResting: false,
+      scale: ASSET_BASE_SCALE.potion * (0.95 + Math.random() * 0.15),
+      glowPhase: Math.random() * Math.PI * 2,
+    };
+    potionsList.push(potionRecord);
+    if (potionsList.length > 12) potionsList.shift();
+
+    for (let i = 0; i < 8; i++) {
+      spawnParticle(posX, 40, (Math.random() - 0.5) * 60, Math.random() * 70, '#c084fc', 4, 1.0, 'sparkle');
+    }
+  }
+
   function syncFlowers(flowers) {
     const activeOwners = new Set();
     const count = flowers.length;
@@ -122,7 +172,7 @@ export function createRenderer({ canvas }) {
 
       const baseY = floorY - 26 + Math.sin(idx * 11) * 6;
       const isGold = !!f.isGold || f.growth >= 3;
-      const targetScale = isGold ? 2.3 : f.growth >= 1 ? 2.0 : 1.35;
+      const targetScale = isGold ? 1.45 : f.growth >= 1 ? 1.25 : 0.95;
       const rotZ = ((f.traits?.rot || 0) % 0.4) - 0.2;
 
       if (!record) {
@@ -173,10 +223,18 @@ export function createRenderer({ canvas }) {
         else if (item.type === 'banana') spriteKey = 'bananaPeel';
         else if (item.type === 'mushroom') spriteKey = 'poisonMushroom';
         else if (item.type === 'can') spriteKey = 'crushedCan';
+        else if (item.type === 'fishbone' || item.type === 'fish') spriteKey = 'fishbone';
+        else if (item.type === 'coffee' || item.type === 'cup') spriteKey = 'coffeecup';
+        else if (item.type === 'battery') spriteKey = 'battery';
+        else if (item.type === 'apple' || item.type === 'core') spriteKey = 'appleCore';
+        else if (item.type === 'clover') spriteKey = 'clover';
         else {
-          const pool = ['pizza', 'crushedCan', 'bananaPeel', 'poisonMushroom'];
+          const pool = ['pizza', 'crushedCan', 'bananaPeel', 'poisonMushroom', 'fishbone', 'coffeecup', 'battery', 'appleCore', 'clover'];
           spriteKey = pool[Math.floor(Math.random() * pool.length)];
         }
+
+        const baseSc = ASSET_BASE_SCALE[spriteKey] || 0.95;
+        const scaleVal = baseSc * (0.85 + Math.random() * 0.30);
 
         record = {
           id: item.id, type: item.type, spriteKey, x: posX, y: startY,
@@ -184,7 +242,7 @@ export function createRenderer({ canvas }) {
           vx: (Math.random() - 0.5) * 70, vy: 240 + Math.random() * 140,
           rot: Math.random() * Math.PI * 2, vRot: (Math.random() - 0.5) * 7.0,
           targetRot: targetAngle, bounceCount: 0, isResting: false,
-          scale: 1.9 + Math.random() * 0.7,
+          scale: scaleVal,
         };
         trashMap.set(item.id, record);
         activeTrashList.push(record);
@@ -222,10 +280,17 @@ export function createRenderer({ canvas }) {
     for (let i = 0; i < 40; i++) {
       spawnParticle((i / 40) * width + (Math.random() - 0.5) * 40, floorY - 10 + (Math.random() - 0.5) * 25, (Math.random() - 0.5) * 160, -Math.random() * 140 - 50, '#4ade80', 5, 0.8);
     }
+    for (const p of potionsList) {
+      for (let i = 0; i < 6; i++) {
+        spawnParticle(p.x, p.y, (Math.random() - 0.5) * 60, -Math.random() * 80 - 20, '#c084fc', 4, 0.7, 'sparkle');
+      }
+    }
+    potionsList.length = 0;
   }
 
   function triggerGoldEffect() {
     growVines(0.40, 'sun');
+    spawnPotion();
     const floorY = getFloorY();
     for (let i = 0; i < 28; i++) {
       fireflies.push({
@@ -283,6 +348,37 @@ export function createRenderer({ canvas }) {
           item.vy = 0; item.vx = 0; item.vRot = 0;
           item.rot = item.targetRot;
           item.isResting = true;
+        }
+      }
+    }
+
+    // Update Potions physics & magical glow/sparkle
+    for (let i = 0; i < potionsList.length; i++) {
+      const p = potionsList[i];
+      p.glowPhase += dt * 3.2;
+      if (!p.isResting) {
+        p.vy += 600 * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.rot += p.vRot * dt;
+
+        if (p.y >= p.targetY) {
+          p.y = p.targetY;
+          if (Math.abs(p.vy) > 70 && p.bounceCount < 2) {
+            p.vy = -p.vy * 0.36;
+            p.vx *= 0.6;
+            p.vRot *= 0.5;
+            p.bounceCount++;
+            spawnParticle(p.x, p.y + 6, (Math.random() - 0.5) * 30, -25, '#c084fc', 3, 0.4, 'sparkle');
+          } else {
+            p.vy = 0; p.vx = 0; p.vRot = 0;
+            p.rot = p.targetRot;
+            p.isResting = true;
+          }
+        }
+      } else {
+        if (Math.random() < 0.04) {
+          spawnParticle(p.x + (Math.random() - 0.5) * 16, p.y - 10, (Math.random() - 0.5) * 14, -Math.random() * 25 - 8, '#e879f9', 3, 0.8, 'sparkle');
         }
       }
     }
@@ -409,17 +505,24 @@ export function createRenderer({ canvas }) {
       }
     }
 
-    // 3. Bottom-Right Fence & Watering Can
+    // 3. Bottom-Right Fence & Watering Can & Clovers
     if (images.fenceWatering && images.fenceWatering.complete) {
-      drawSprite(images.fenceWatering, width - 130, floorY - 32, 2.6, 0, false);
+      drawSprite(images.fenceWatering, width - 130, floorY - 32, 2.4, 0, false);
+      if (images.clover && images.clover.complete) {
+        drawSprite(images.clover, width - 175, floorY - 8, 0.36, 0.1);
+        drawSprite(images.clover, width - 68, floorY - 6, 0.32, -0.15, true);
+      }
     }
 
-    // 4. Bottom-Left Street Trash Can & Base Litter
+    // 4. Bottom-Left Street Trash Can & Base Litter (Minimal, Crisp Scale)
     if (images.trashCan && images.trashCan.complete) {
-      drawSprite(images.trashCan, 80, floorY - 38, 2.8, -0.04, false);
-      if (images.crushedCan && images.crushedCan.complete) drawSprite(images.crushedCan, 32, floorY - 6, 2.0, -0.45);
-      if (images.bananaPeel && images.bananaPeel.complete) drawSprite(images.bananaPeel, 145, floorY - 8, 2.2, 0.35, true);
-      if (images.poisonMushroom && images.poisonMushroom.complete) drawSprite(images.poisonMushroom, 185, floorY - 12, 1.8, 0.15);
+      drawSprite(images.trashCan, 80, floorY - 38, 2.6, -0.04, false);
+      if (images.crushedCan && images.crushedCan.complete) drawSprite(images.crushedCan, 32, floorY - 6, 0.95, -0.45);
+      if (images.fishbone && images.fishbone.complete) drawSprite(images.fishbone, 55, floorY - 4, 0.35, 0.15);
+      if (images.bananaPeel && images.bananaPeel.complete) drawSprite(images.bananaPeel, 140, floorY - 8, 0.95, 0.35, true);
+      if (images.coffeecup && images.coffeecup.complete) drawSprite(images.coffeecup, 168, floorY - 6, 0.35, -0.2);
+      if (images.battery && images.battery.complete) drawSprite(images.battery, 192, floorY - 6, 0.32, 0.4);
+      if (images.poisonMushroom && images.poisonMushroom.complete) drawSprite(images.poisonMushroom, 218, floorY - 10, 0.9, 0.15);
     }
 
     // 5. Dynamic Flowers
@@ -431,13 +534,21 @@ export function createRenderer({ canvas }) {
       if (record.isGold && Math.random() < 0.25) {
         spawnParticle(record.x + (Math.random() - 0.5) * 30, record.y - 10, 0, -30, '#fef08a', 3, 0.6, 'sparkle');
       }
-      drawNameplate(record.owner, record.x, record.y - (36 * (record.scale / 2.0)), record.isGold);
+      drawNameplate(record.owner, record.x, record.y - (26 * (record.scale / 1.25)), record.isGold);
     }
 
     // 6. Dynamic Falling/Stacked Trash
     for (const item of activeTrashList) {
       const img = images[item.spriteKey] || images.crushedCan;
       drawSprite(img, item.x, item.y, item.scale, item.rot);
+    }
+
+    // 6-1. Magical Potion Bottles (Glowing and Sparkly!)
+    for (const p of potionsList) {
+      if (images.potion && images.potion.complete) {
+        const glowPulse = 0.85 + Math.sin(p.glowPhase) * 0.15;
+        drawSprite(images.potion, p.x, p.y, p.scale, p.rot, false, glowPulse);
+      }
     }
 
     // 7. Particles
@@ -498,7 +609,7 @@ export function createRenderer({ canvas }) {
 
   return {
     scene, camera, renderer,
-    syncFlowers, syncTrash,
+    syncFlowers, syncTrash, spawnPotion,
     triggerWaterEffect, triggerSunEffect, triggerCleanEffect, triggerGoldEffect, triggerLaughEffect,
     toggleNameplates, update,
   };

@@ -87,7 +87,7 @@
       z-index: 100; transition: opacity 0.3s ease, transform 0.3s ease;
     }
     #ui-container.hidden {
-      opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-20px);
+      opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-20px); display: none;
     }
     .ui-group { display: flex; align-items: center; gap: 6px; }
     .ui-title { font-weight: 800; font-size: 13px; color: #38bdf8; letter-spacing: 0.5px; margin-right: 4px; }
@@ -175,6 +175,7 @@
       <button id="btn-test-trash" class="btn-trash">🥫 !쓰레기</button>
       <button id="btn-test-clean" class="btn-clean">🧹 !청소</button>
       <button id="btn-test-gold" class="btn-gold">✨ !비료</button>
+      <button id="btn-test-potion" class="btn-gold" style="background:#7e22ce; border-color:#c084fc;">🧪 !물약</button>
       <button id="btn-test-laugh">😂 ㅋㅋㅋㅋ</button>
     </div>
 
@@ -407,8 +408,8 @@
       const lower = trimmed.toLowerCase();
       if (['!물', '!물주기', '!water'].includes(lower)) return '!water';
       if (['!햇빛', '!해', '!햇살', '!sun', '!bloom', '!개화'].includes(lower)) return '!sun';
-      if (['!비료', '!골드', '!황금', '!gold'].includes(lower)) return '!gold';
-      if (['!쓰레기', '!피자', '!캔', '!바나나', '!버섯', '!trash', '!pizza', '!can'].includes(lower)) return '!trash';
+      if (['!비료', '!골드', '!황금', '!gold', '!포션', '!물약', '!potion'].includes(lower)) return '!gold';
+      if (['!쓰레기', '!피자', '!캔', '!바나나', '!버섯', '!생선', '!가시', '!커피', '!종이컵', '!배터리', '!사과', '!trash', '!pizza', '!can', '!fish', '!coffee', '!battery', '!apple', '!clover'].includes(lower)) return '!trash';
       if (['!청소', '!빗자루', '!clean'].includes(lower)) return '!clean';
       if (['!심기', '!씨앗', '!plant'].includes(lower)) return '!plant';
       return trimmed;
@@ -523,6 +524,9 @@
     });
     document.getElementById('btn-test-gold').addEventListener('click', () => {
       handleEvent({ user: getNextViewer(), text: '!비료' });
+    });
+    document.getElementById('btn-test-potion').addEventListener('click', () => {
+      handleEvent({ user: getNextViewer(), text: '!물약' });
     });
     document.getElementById('btn-test-laugh').addEventListener('click', () => {
       handleEvent({ user: getNextViewer(), text: 'ㅋㅋㅋㅋ' });
@@ -654,14 +658,14 @@
       setStatus('disconnected');
     });
 
-    // URL Parameters
+    // URL Parameters for OBS Overlay
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('obs') === '1' || urlParams.get('overlay') === '1') {
       uiContainer.classList.add('hidden');
-      btnToggleMock.click();
+      if (mockActive) btnToggleMock.click();
     }
     if (urlParams.get('mock') === '0') {
-      btnToggleMock.click();
+      if (mockActive) btnToggleMock.click();
     }
     if (urlParams.get('demo') === '1' || urlParams.get('autodemo') === '1') {
       setTimeout(() => { btnAutoDemo.click(); }, 600);
