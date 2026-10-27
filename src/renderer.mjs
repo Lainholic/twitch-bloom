@@ -4,7 +4,6 @@
 // ============================================================================
 
 const ASSET_SRCS = {
-  vinePot: './assets/vine_pot.png',
   ivyVine: './assets/ivy_vine.png',
   trashCan: './assets/trash_can.png',
   fenceWatering: './assets/fence_watering.png',
@@ -24,16 +23,18 @@ const ASSET_SRCS = {
 };
 
 const ASSET_BASE_SCALE = {
-  potion: 0.38,
-  fishbone: 0.36,
-  clover: 0.36,
-  coffeecup: 0.36,
-  battery: 0.36,
-  appleCore: 0.36,
-  pizza: 0.95,
-  crushedCan: 0.95,
-  bananaPeel: 0.95,
-  poisonMushroom: 0.95,
+  // SVG 128x128 -> ~28px~32px
+  potion: 0.25,
+  fishbone: 0.22,
+  clover: 0.22,
+  coffeecup: 0.22,
+  battery: 0.22,
+  appleCore: 0.22,
+  // PNG 48x48 -> ~30px~32px
+  pizza: 0.65,
+  crushedCan: 0.65,
+  bananaPeel: 0.65,
+  poisonMushroom: 0.65,
 };
 
 const images = {};
@@ -123,7 +124,7 @@ export function createRenderer({ canvas }) {
     const floorY = getFloorY();
     const posX = (customX !== null) ? customX : (200 + Math.random() * (width - 400));
     const startY = -40 - Math.random() * 50;
-    const targetFloorOffset = (Math.random() - 0.5) * 14;
+    const targetFloorOffset = (Math.random() - 0.5) * 12;
     const targetAngle = ((Math.random() - 0.5) * Math.PI) * 0.25;
 
     const potionRecord = {
@@ -138,7 +139,7 @@ export function createRenderer({ canvas }) {
       targetRot: targetAngle,
       bounceCount: 0,
       isResting: false,
-      scale: ASSET_BASE_SCALE.potion * (0.95 + Math.random() * 0.15),
+      scale: ASSET_BASE_SCALE.potion * (0.95 + Math.random() * 0.1),
       glowPhase: Math.random() * Math.PI * 2,
     };
     potionsList.push(potionRecord);
@@ -172,7 +173,7 @@ export function createRenderer({ canvas }) {
 
       const baseY = floorY - 26 + Math.sin(idx * 11) * 6;
       const isGold = !!f.isGold || f.growth >= 3;
-      const targetScale = isGold ? 1.45 : f.growth >= 1 ? 1.25 : 0.95;
+      const targetScale = isGold ? 1.05 : f.growth >= 1 ? 0.85 : 0.65;
       const rotZ = ((f.traits?.rot || 0) % 0.4) - 0.2;
 
       if (!record) {
@@ -187,7 +188,7 @@ export function createRenderer({ canvas }) {
       } else {
         if (record.growth !== f.growth || record.isGold !== isGold || record.blooming !== f.blooming) {
           record.growth = f.growth; record.blooming = f.blooming; record.isGold = isGold;
-          record.targetScale = targetScale; record.scale = 0.8;
+          record.targetScale = targetScale; record.scale = 0.6;
           const burstColor = isGold ? '#facc15' : '#f472b6';
           for (let i = 0; i < 8; i++) {
             spawnParticle(record.x, record.y, (Math.random() - 0.5) * 110, -Math.random() * 140 - 50, burstColor, 5, 0.9, 'sparkle');
@@ -233,8 +234,8 @@ export function createRenderer({ canvas }) {
           spriteKey = pool[Math.floor(Math.random() * pool.length)];
         }
 
-        const baseSc = ASSET_BASE_SCALE[spriteKey] || 0.95;
-        const scaleVal = baseSc * (0.85 + Math.random() * 0.30);
+        const baseSc = ASSET_BASE_SCALE[spriteKey] || 0.65;
+        const scaleVal = baseSc * (0.90 + Math.random() * 0.20);
 
         record = {
           id: item.id, type: item.type, spriteKey, x: posX, y: startY,
@@ -410,29 +411,28 @@ export function createRenderer({ canvas }) {
     if (vineState.swayBonus > 0) vineState.swayBonus = Math.max(0, vineState.swayBonus - dt * 1.5);
   }
 
-  function drawSprite(img, cx, cy, scale, rot = 0, flipH = false, alpha = 1.0, scaleY = null) {
+  function drawSprite(img, cx, cy, scale, rot = 0, flipH = false, alpha = 1.0) {
     if (!img || !img.complete || img.naturalWidth === 0) return;
-    const sy = (scaleY !== null) ? scaleY : scale;
-    const w = img.naturalWidth * scale;
-    const h = img.naturalHeight * sy;
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
     ctx.save();
     if (alpha < 1.0) ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
-    ctx.translate(cx, cy);
+    ctx.translate(Math.round(cx), Math.round(cy));
     if (rot !== 0) ctx.rotate(rot);
     if (flipH) ctx.scale(-1, 1);
-    ctx.drawImage(img, -Math.round(w / 2), -Math.round(h / 2), Math.round(w), Math.round(h));
+    ctx.drawImage(img, -Math.round(w / 2), -Math.round(h / 2), w, h);
     ctx.restore();
   }
 
   function drawNameplate(text, cx, cy, isGold) {
     if (!nameplatesEnabled || !text) return;
     ctx.save();
-    ctx.font = 'bold 11px monospace, "Courier New", sans-serif';
+    ctx.font = 'bold 10px monospace, "Courier New", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const clean = text.slice(0, 14);
-    const boxW = Math.max(48, Math.round(ctx.measureText(clean).width + 16));
-    const boxH = 18;
+    const boxW = Math.max(40, Math.round(ctx.measureText(clean).width + 10));
+    const boxH = 15;
     const boxX = Math.round(cx - boxW / 2);
     const boxY = Math.round(cy - boxH / 2);
     ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
@@ -452,89 +452,87 @@ export function createRenderer({ canvas }) {
     const time = performance.now() * 0.001;
     const floorY = getFloorY();
 
-    // 1. Ceiling & Wall Trailing Ivy Vines (Natural Ivy with NO pots/planters!)
-    const vineImg = (images.ivyVine && images.ivyVine.complete) ? images.ivyVine : images.vinePot;
-    if (vineImg && vineImg.complete) {
+    // 1. Ceiling & Wall Trailing Ivy Vines (Pure Organic Ivy, 1:1 Strict Aspect Ratio, Zero Pots!)
+    if (images.ivyVine && images.ivyVine.complete) {
       const g = vineState.growth;
-      const stretchY = 1.0 + (g - 0.35) * 0.28;
       const extraSway = vineState.swayBonus * Math.sin(time * 6.0);
 
-      const tlPots = [
-        { x: 35, y: 15, sx: 2.2, sy: 2.2 * stretchY, r: -0.05, flip: false, seed: 1.1, minG: 0.0 },
-        { x: 100, y: -5, sx: 2.6, sy: 2.6 * stretchY, r: 0.08, flip: true, seed: 2.4, minG: 0.0 },
-        { x: 170, y: 18, sx: 2.0, sy: 2.0 * stretchY, r: -0.12, flip: false, seed: 3.7, minG: 0.5 },
-        { x: -10, y: 38, sx: 2.4, sy: 2.4 * stretchY, r: 0.14, flip: false, seed: 5.9, minG: 0.8 },
-        { x: 25, y: 110, sx: 2.1, sy: 2.3 * stretchY, r: -0.08, flip: true, seed: 4.1, minG: 1.4 },
-        { x: 80, y: 85, sx: 1.9, sy: 2.1 * stretchY, r: 0.10, flip: false, seed: 2.8, minG: 1.9 },
-        { x: 18, y: 190, sx: 2.0, sy: 2.2 * stretchY, r: -0.06, flip: false, seed: 6.2, minG: 2.6 },
-        { x: 235, y: -10, sx: 2.3, sy: 2.4 * stretchY, r: 0.06, flip: true, seed: 4.2, minG: 3.2 },
+      const tlVines = [
+        { x: 30, y: 16, s: 1.15, r: -0.05, flip: false, seed: 1.1, minG: 0.0 },
+        { x: 75, y: 10, s: 1.25, r: 0.08, flip: true, seed: 2.4, minG: 0.0 },
+        { x: 125, y: 20, s: 1.05, r: -0.12, flip: false, seed: 3.7, minG: 0.5 },
+        { x: 15, y: 55, s: 1.15, r: 0.14, flip: false, seed: 5.9, minG: 0.8 },
+        { x: 35, y: 95, s: 1.1, r: -0.08, flip: true, seed: 4.1, minG: 1.4 },
+        { x: 70, y: 80, s: 0.95, r: 0.10, flip: false, seed: 2.8, minG: 1.9 },
+        { x: 25, y: 145, s: 1.0, r: -0.06, flip: false, seed: 6.2, minG: 2.6 },
+        { x: 175, y: 12, s: 1.15, r: 0.06, flip: true, seed: 4.2, minG: 3.2 },
       ];
 
-      const trPots = [
-        { x: width - 40, y: 10, sx: 2.4, sy: 2.4 * stretchY, r: 0.06, flip: true, seed: 1.5, minG: 0.0 },
-        { x: width - 110, y: -8, sx: 2.7, sy: 2.7 * stretchY, r: -0.1, flip: false, seed: 2.9, minG: 0.0 },
-        { x: width - 185, y: 20, sx: 2.1, sy: 2.1 * stretchY, r: 0.12, flip: true, seed: 3.3, minG: 0.5 },
-        { x: width + 10, y: 35, sx: 2.5, sy: 2.5 * stretchY, r: -0.14, flip: true, seed: 5.2, minG: 0.8 },
-        { x: width - 25, y: 115, sx: 2.2, sy: 2.3 * stretchY, r: 0.09, flip: false, seed: 3.8, minG: 1.4 },
-        { x: width - 85, y: 90, sx: 1.9, sy: 2.0 * stretchY, r: -0.11, flip: true, seed: 4.5, minG: 1.9 },
-        { x: width - 20, y: 195, sx: 2.1, sy: 2.2 * stretchY, r: 0.07, flip: true, seed: 1.9, minG: 2.6 },
-        { x: width - 255, y: -12, sx: 2.3, sy: 2.4 * stretchY, r: -0.08, flip: false, seed: 4.8, minG: 3.2 },
+      const trVines = [
+        { x: width - 30, y: 16, s: 1.15, r: 0.06, flip: true, seed: 1.5, minG: 0.0 },
+        { x: width - 80, y: 8, s: 1.3, r: -0.1, flip: false, seed: 2.9, minG: 0.0 },
+        { x: width - 135, y: 22, s: 1.05, r: 0.12, flip: true, seed: 3.3, minG: 0.5 },
+        { x: width - 15, y: 58, s: 1.2, r: -0.14, flip: true, seed: 5.2, minG: 0.8 },
+        { x: width - 35, y: 100, s: 1.1, r: 0.09, flip: false, seed: 3.8, minG: 1.4 },
+        { x: width - 75, y: 82, s: 0.95, r: -0.11, flip: true, seed: 4.5, minG: 1.9 },
+        { x: width - 25, y: 150, s: 1.05, r: 0.07, flip: true, seed: 1.9, minG: 2.6 },
+        { x: width - 190, y: 10, s: 1.15, r: -0.08, flip: false, seed: 4.8, minG: 3.2 },
       ];
 
-      for (const p of tlPots) {
+      for (const p of tlVines) {
         if (g < p.minG) continue;
         const fade = Math.min(1.0, (g - p.minG) / 0.4);
         const sway = Math.sin(time * 1.5 + p.seed) * 0.05 + extraSway;
-        drawSprite(vineImg, p.x, p.y, p.sx * fade, p.r + sway, p.flip, fade, p.sy * fade);
+        drawSprite(images.ivyVine, p.x, p.y, p.s * fade, p.r + sway, p.flip, fade);
       }
 
-      for (const p of trPots) {
+      for (const p of trVines) {
         if (g < p.minG) continue;
         const fade = Math.min(1.0, (g - p.minG) / 0.4);
         const sway = Math.sin(time * 1.5 + p.seed) * 0.05 + extraSway;
-        drawSprite(vineImg, p.x, p.y, p.sx * fade, p.r + sway, p.flip, fade, p.sy * fade);
+        drawSprite(images.ivyVine, p.x, p.y, p.s * fade, p.r + sway, p.flip, fade);
       }
     }
 
-    // 2. Bottom Grass Tiles
+    // 2. Bottom Grass Tiles (1:1 Ratio, Subtle floor trim)
     if (images.grassBase && images.grassBase.complete) {
-      const tileWidth = 64 * 2.2;
+      const tileWidth = 64 * 1.4;
       const tileCount = Math.ceil(width / tileWidth) + 2;
       for (let i = 0; i < tileCount; i++) {
-        drawSprite(images.grassBase, i * tileWidth - 20, floorY + 12 + Math.sin(i * 1.9) * 4, 2.2, 0, i % 2 === 1);
+        drawSprite(images.grassBase, i * tileWidth - 10, floorY + 12 + Math.sin(i * 1.9) * 3, 1.4, 0, i % 2 === 1);
       }
     }
 
-    // 3. Bottom-Right Fence & Watering Can & Clovers
+    // 3. Bottom-Right Fence & Watering Can & Clovers (1:1 Ratio, Compact)
     if (images.fenceWatering && images.fenceWatering.complete) {
-      drawSprite(images.fenceWatering, width - 130, floorY - 32, 2.4, 0, false);
+      drawSprite(images.fenceWatering, width - 85, floorY - 20, 1.4, 0, false);
       if (images.clover && images.clover.complete) {
-        drawSprite(images.clover, width - 175, floorY - 8, 0.36, 0.1);
-        drawSprite(images.clover, width - 68, floorY - 6, 0.32, -0.15, true);
+        drawSprite(images.clover, width - 118, floorY - 5, 0.22, 0.1);
+        drawSprite(images.clover, width - 42, floorY - 4, 0.20, -0.15, true);
       }
     }
 
-    // 4. Bottom-Left Street Trash Can & Base Litter (Minimal, Crisp Scale)
+    // 4. Bottom-Left Street Trash Can & Base Litter (1:1 Ratio, Compact & Cute)
     if (images.trashCan && images.trashCan.complete) {
-      drawSprite(images.trashCan, 80, floorY - 38, 2.6, -0.04, false);
-      if (images.crushedCan && images.crushedCan.complete) drawSprite(images.crushedCan, 32, floorY - 6, 0.95, -0.45);
-      if (images.fishbone && images.fishbone.complete) drawSprite(images.fishbone, 55, floorY - 4, 0.35, 0.15);
-      if (images.bananaPeel && images.bananaPeel.complete) drawSprite(images.bananaPeel, 140, floorY - 8, 0.95, 0.35, true);
-      if (images.coffeecup && images.coffeecup.complete) drawSprite(images.coffeecup, 168, floorY - 6, 0.35, -0.2);
-      if (images.battery && images.battery.complete) drawSprite(images.battery, 192, floorY - 6, 0.32, 0.4);
-      if (images.poisonMushroom && images.poisonMushroom.complete) drawSprite(images.poisonMushroom, 218, floorY - 10, 0.9, 0.15);
+      drawSprite(images.trashCan, 60, floorY - 22, 1.4, -0.04, false);
+      if (images.crushedCan && images.crushedCan.complete) drawSprite(images.crushedCan, 24, floorY - 5, 0.60, -0.45);
+      if (images.fishbone && images.fishbone.complete) drawSprite(images.fishbone, 38, floorY - 4, 0.22, 0.15);
+      if (images.bananaPeel && images.bananaPeel.complete) drawSprite(images.bananaPeel, 98, floorY - 5, 0.60, 0.35, true);
+      if (images.coffeecup && images.coffeecup.complete) drawSprite(images.coffeecup, 116, floorY - 5, 0.22, -0.2);
+      if (images.battery && images.battery.complete) drawSprite(images.battery, 134, floorY - 4, 0.20, 0.4);
+      if (images.poisonMushroom && images.poisonMushroom.complete) drawSprite(images.poisonMushroom, 152, floorY - 6, 0.55, 0.15);
     }
 
-    // 5. Dynamic Flowers
+    // 5. Dynamic Flowers (1:1 Ratio, Small & Crisp)
     for (const record of flowersMap.values()) {
       const sway = Math.sin(time * 2.2 + record.x) * 0.05;
       const jiggle = record.jiggle > 0 ? Math.sin(time * 30.0) * record.jiggle : 0;
       const flowerImg = record.isGold ? images.goldenFlower : images.flowerBloom;
       drawSprite(flowerImg, record.x, record.y, record.scale, record.rotZ + sway + jiggle);
       if (record.isGold && Math.random() < 0.25) {
-        spawnParticle(record.x + (Math.random() - 0.5) * 30, record.y - 10, 0, -30, '#fef08a', 3, 0.6, 'sparkle');
+        spawnParticle(record.x + (Math.random() - 0.5) * 20, record.y - 8, 0, -25, '#fef08a', 3, 0.6, 'sparkle');
       }
-      drawNameplate(record.owner, record.x, record.y - (26 * (record.scale / 1.25)), record.isGold);
+      drawNameplate(record.owner, record.x, record.y - (20 * (record.scale / 0.85)), record.isGold);
     }
 
     // 6. Dynamic Falling/Stacked Trash
