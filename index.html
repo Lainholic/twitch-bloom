@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,6 +75,12 @@
       image-rendering: pixelated; image-rendering: crisp-edges;
     }
 
+    /* Real Twitch Live Stream Player Iframe */
+    #twitch-live-frame {
+      position: fixed; inset: 0; width: 100vw; height: 100vh;
+      border: none; z-index: 2; display: none; background: #000;
+    }
+
     /* Top Floating Control Toolbar */
     #ui-container {
       position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
@@ -125,6 +131,9 @@
   </style>
 </head>
 <body>
+  <!-- Real Twitch Live Stream Player (1080p full background) -->
+  <iframe id="twitch-live-frame" src="" allowfullscreen></iframe>
+
   <!-- Mock Game Screen (Toggleable background for development/demo recording) -->
   <div id="mock-game-screen">
     <canvas id="mock-game-canvas"></canvas>
@@ -141,7 +150,7 @@
   <div id="mock-chat">
     <div class="mock-chat-header">💬 LIVE TWITCH CHAT</div>
     <div id="mock-chat-list" class="mock-chat-messages">
-      <div class="chat-msg"><span class="chat-user" style="color:#38bdf8;">system:</span> <span class="chat-text">방송이 시작되었습니다!</span></div>
+      <div class="chat-msg"><span class="chat-user" style="color:#38bdf8;">system:</span> <span class="chat-text">Stream started! Welcome viewers!</span></div>
     </div>
   </div>
 
@@ -153,44 +162,52 @@
     <!-- Twitch Connection Section -->
     <div class="ui-group">
       <span class="ui-title">🌿 TWITCH</span>
-      <input type="text" id="channel-input" placeholder="채널명 (예: shroud)" />
-      <button id="btn-connect" class="btn-primary">연결</button>
-      <button id="btn-disconnect" style="display:none;">해제</button>
+      <input type="text" id="channel-input" placeholder="Channel (e.g. shroud)" />
+      <button id="btn-connect" class="btn-primary">Connect</button>
+      <button id="btn-disconnect" style="display:none;">Disconnect</button>
       <div id="status-badge" class="status-badge">
         <span id="status-dot" class="status-dot"></span>
-        <span id="status-text">대기 중</span>
+        <span id="status-text">Idle</span>
       </div>
     </div>
 
-    <!-- Background Mock Toggle -->
+    <!-- Background Mock & Real Twitch Stream Toggle -->
     <div class="ui-group">
-      <button id="btn-toggle-mock" class="btn-mock active">🎮 목업 게임 화면 ON</button>
+      <button id="btn-toggle-live" class="btn-primary" style="background:#7e22ce; border-color:#a855f7;">📺 Live Twitch Stream BG</button>
+      <select id="preset-channels" style="background:#1e293b; color:#f8fafc; border:1px solid #a855f7; border-radius:6px; padding:5px 8px; font-size:12px; cursor:pointer;">
+        <option value="">⚡ Quick Connect Live Stream</option>
+        <option value="caedrel">🏆 Caedrel (LoL #1 Global)</option>
+        <option value="xqc">🔥 xQc (Variety #1)</option>
+        <option value="shroud">🎯 Shroud (FPS Legend)</option>
+        <option value="riotgames">🎮 Riot Games (Official)</option>
+      </select>
+      <button id="btn-toggle-mock" class="btn-mock active">🎮 Mock Game Screen ON</button>
     </div>
 
     <!-- Interactive Test Buttons -->
     <div class="ui-group">
       <span class="ui-title">✨ TEST</span>
-      <button id="btn-test-water" class="btn-water">💧 !물</button>
-      <button id="btn-test-sun" class="btn-sun">☀️ !햇빛</button>
-      <button id="btn-test-trash" class="btn-trash">🥫 !쓰레기</button>
-      <button id="btn-test-clean" class="btn-clean">🧹 !청소</button>
-      <button id="btn-test-gold" class="btn-trash" style="background:#7e22ce; border-color:#c084fc;">🧪 !물약/비료</button>
-      <button id="btn-test-laugh">😂 ㅋㅋㅋㅋ</button>
+      <button id="btn-test-water" class="btn-water">💧 !water</button>
+      <button id="btn-test-sun" class="btn-sun">☀️ !sun</button>
+      <button id="btn-test-trash" class="btn-trash">🥫 !trash</button>
+      <button id="btn-test-clean" class="btn-clean">🧹 !clean</button>
+      <button id="btn-test-gold" class="btn-trash" style="background:#7e22ce; border-color:#c084fc;">🧪 !potion</button>
+      <button id="btn-test-laugh">😂 lol</button>
     </div>
 
     <!-- Demo & Snapshot Card Controls -->
     <div class="ui-group">
-      <button id="btn-auto-demo" class="btn-primary" style="background:#059669; border-color:#34d399;">🎬 시뮬레이터 (100명 난투)</button>
-      <button id="btn-toggle-names">🏷️ 닉네임 ON</button>
-      <button id="btn-toggle-card" class="btn-card">🏆 결산 카드</button>
-      <button id="btn-download-png" style="display:none;">💾 PNG 저장</button>
+      <button id="btn-auto-demo" class="btn-primary" style="background:#059669; border-color:#34d399;">🎬 Demo Simulator (100 Viewers)</button>
+      <button id="btn-toggle-names">🏷️ Nameplates ON</button>
+      <button id="btn-toggle-card" class="btn-card">🏆 Recap Card</button>
+      <button id="btn-download-png" style="display:none;">💾 Save PNG</button>
     </div>
 
     <!-- Audio & OBS Controls -->
     <div class="ui-group">
-      <button id="btn-mute">🔊 소리 켬</button>
+      <button id="btn-mute">🔊 Sound ON</button>
       <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.15" style="width: 60px;" />
-      <button id="btn-hide-ui">OBS 숨김 <span class="shortcut-hint">[H]</span></button>
+      <button id="btn-hide-ui">Hide UI <span class="shortcut-hint">[H]</span></button>
     </div>
   </div>
 
@@ -484,24 +501,75 @@
 
     // --- Button Bindings & Simulation ---
     const btnToggleMock = document.getElementById('btn-toggle-mock');
+    const btnToggleLive = document.getElementById('btn-toggle-live');
+    const presetChannels = document.getElementById('preset-channels');
+    const twitchFrame = document.getElementById('twitch-live-frame');
     const mockGameScreen = document.getElementById('mock-game-screen');
     const mockWebcam = document.getElementById('mock-webcam');
     const mockChat = document.getElementById('mock-chat');
+    let livePlayerActive = false;
+
+    function activateLiveTwitch(channel) {
+      if (!channel) return;
+      channel = channel.toLowerCase().trim();
+      const parentHost = window.location.hostname || 'localhost';
+      twitchFrame.src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${parentHost}&parent=localhost&parent=127.0.0.1&muted=false`;
+      twitchFrame.style.display = 'block';
+      livePlayerActive = true;
+
+      // Hide mock elements to let the real stream shine
+      mockActive = false;
+      mockGameScreen.classList.add('hidden');
+      if (mockWebcam) mockWebcam.style.display = 'none';
+      if (mockChat) mockChat.style.display = 'none';
+      btnToggleMock.classList.remove('active');
+      btnToggleMock.textContent = '🎮 Mock Game Screen OFF';
+      btnToggleLive.textContent = `📺 Live [${channel}] Playing`;
+      btnToggleLive.style.background = '#059669';
+      btnToggleLive.style.borderColor = '#34d399';
+
+      // Auto-connect Twitch IRC chat for this live stream
+      channelInput.value = channel;
+      if (twitchDisconnect) { twitchDisconnect(); twitchDisconnect = null; }
+      try {
+        twitchDisconnect = connectTwitch({
+          channel,
+          onChat: (msg) => { handleEvent(msg); },
+          onStatus: (st) => { setStatus(st); }
+        });
+      } catch (e) { console.error('Auto IRC error:', e); }
+    }
+
+    btnToggleLive.addEventListener('click', () => {
+      const ch = channelInput.value.trim() || 'caedrel';
+      activateLiveTwitch(ch);
+    });
+
+    presetChannels.addEventListener('change', (e) => {
+      const ch = e.target.value;
+      if (ch) activateLiveTwitch(ch);
+    });
 
     btnToggleMock.addEventListener('click', () => {
       mockActive = !mockActive;
       if (mockActive) {
+        twitchFrame.style.display = 'none';
+        twitchFrame.src = '';
+        livePlayerActive = false;
+        btnToggleLive.textContent = '📺 Live Twitch Stream BG';
+        btnToggleLive.style.background = '#7e22ce';
+        btnToggleLive.style.borderColor = '#a855f7';
         mockGameScreen.classList.remove('hidden');
         if (mockWebcam) mockWebcam.style.display = 'flex';
         if (mockChat) mockChat.style.display = 'flex';
         btnToggleMock.classList.add('active');
-        btnToggleMock.textContent = '🎮 목업 게임 화면 ON';
+        btnToggleMock.textContent = '🎮 Mock Game Screen ON';
       } else {
         mockGameScreen.classList.add('hidden');
         if (mockWebcam) mockWebcam.style.display = 'none';
         if (mockChat) mockChat.style.display = 'none';
         btnToggleMock.classList.remove('active');
-        btnToggleMock.textContent = '👻 투명 OBS 모드';
+        btnToggleMock.textContent = '👻 Transparent OBS Mode';
       }
     });
 
@@ -509,31 +577,31 @@
     function getNextViewer() { return 'viewer_' + (localIdx++); }
 
     document.getElementById('btn-test-water').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!물' });
+      handleEvent({ user: getNextViewer(), text: '!water' });
     });
     document.getElementById('btn-test-sun').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!햇빛' });
+      handleEvent({ user: getNextViewer(), text: '!sun' });
     });
     document.getElementById('btn-test-trash').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!쓰레기' });
+      handleEvent({ user: getNextViewer(), text: '!trash' });
     });
     document.getElementById('btn-test-clean').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: '!청소' });
+      handleEvent({ user: getNextViewer(), text: '!clean' });
     });
     const btnTestGold = document.getElementById('btn-test-gold');
     if (btnTestGold) {
       btnTestGold.addEventListener('click', () => {
-        handleEvent({ user: getNextViewer(), text: '!물약' });
+        handleEvent({ user: getNextViewer(), text: '!potion' });
       });
     }
     const btnTestPotion = document.getElementById('btn-test-potion');
     if (btnTestPotion) {
       btnTestPotion.addEventListener('click', () => {
-        handleEvent({ user: getNextViewer(), text: '!물약' });
+        handleEvent({ user: getNextViewer(), text: '!potion' });
       });
     }
     document.getElementById('btn-test-laugh').addEventListener('click', () => {
-      handleEvent({ user: getNextViewer(), text: 'ㅋㅋㅋㅋ' });
+      handleEvent({ user: getNextViewer(), text: 'lol' });
     });
 
     // Demo Simulation
@@ -544,11 +612,11 @@
       getStats: () => garden.getStats(),
       onStep: ({ starting, finished, stopped }) => {
         if (starting) {
-          btnAutoDemo.textContent = '⏹ 시뮬 정지';
+          btnAutoDemo.textContent = '⏹ Stop Demo';
           btnAutoDemo.style.background = '#e11d48';
           btnAutoDemo.style.borderColor = '#fb7185';
         } else if (finished || stopped) {
-          btnAutoDemo.textContent = '🎬 시뮬레이터 (100명 난투)';
+          btnAutoDemo.textContent = '🎬 Demo Simulator (100 Viewers)';
           btnAutoDemo.style.background = '#059669';
           btnAutoDemo.style.borderColor = '#34d399';
         }
@@ -567,12 +635,12 @@
       audio.initAudio();
       if (summaryCard.isVisible()) {
         summaryCard.hide();
-        btnToggleCard.textContent = '🏆 결산 카드';
+        btnToggleCard.textContent = '🏆 Recap Card';
         btnDownloadPng.style.display = 'none';
       } else {
         summaryCard.show(garden.getStats());
         audio.playCard();
-        btnToggleCard.textContent = '✖ 카드 닫기';
+        btnToggleCard.textContent = '✖ Close Card';
         btnDownloadPng.style.display = 'inline-flex';
       }
     });
@@ -585,7 +653,7 @@
     let namesVisible = true;
     btnToggleNames.addEventListener('click', () => {
       namesVisible = rendererApp.toggleNameplates();
-      btnToggleNames.textContent = namesVisible ? '🏷️ 닉네임 ON' : '🏷️ 닉네임 OFF';
+      btnToggleNames.textContent = namesVisible ? '🏷️ Nameplates ON' : '🏷️ Nameplates OFF';
       btnToggleNames.style.color = namesVisible ? '#f8fafc' : '#94a3b8';
     });
 
@@ -596,7 +664,7 @@
       audio.initAudio();
       const muted = !audio.getMuted();
       audio.setMuted(muted);
-      btnMute.textContent = muted ? '🔇 음소거됨' : '🔊 소리 켬';
+      btnMute.textContent = muted ? '🔇 Muted' : '🔊 Sound ON';
     });
     volumeSlider.addEventListener('input', (e) => {
       audio.initAudio();
@@ -625,19 +693,19 @@
     function setStatus(status) {
       statusDot.className = 'status-dot ' + status;
       if (status === 'connected') {
-        statusText.textContent = '연결됨';
+        statusText.textContent = 'Connected';
         btnConnect.style.display = 'none';
         btnDisconnect.style.display = 'inline-flex';
         channelInput.disabled = true;
       } else if (status === 'connecting') {
-        statusText.textContent = '접속 중...';
+        statusText.textContent = 'Connecting...';
       } else if (status === 'rejected') {
-        statusText.textContent = '인증 거부됨';
+        statusText.textContent = 'Rejected';
         btnConnect.style.display = 'inline-flex';
         btnDisconnect.style.display = 'none';
         channelInput.disabled = false;
       } else {
-        statusText.textContent = '대기 중';
+        statusText.textContent = 'Idle';
         btnConnect.style.display = 'inline-flex';
         btnDisconnect.style.display = 'none';
         channelInput.disabled = false;
@@ -646,7 +714,7 @@
 
     btnConnect.addEventListener('click', () => {
       const channel = channelInput.value.trim();
-      if (!channel) { alert('채널명을 입력해 주세요.'); return; }
+      if (!channel) { alert('Please enter a channel name.'); return; }
       try {
         if (twitchDisconnect) twitchDisconnect();
         twitchDisconnect = connectTwitch({
@@ -654,7 +722,7 @@
           onChat: (msg) => { handleEvent(msg); },
           onStatus: (st) => { setStatus(st); }
         });
-      } catch (err) { alert('연결 설정 오류: ' + err.message); }
+      } catch (err) { alert('Connection error: ' + err.message); }
     });
 
     btnDisconnect.addEventListener('click', () => {

@@ -41,22 +41,22 @@ export function createSummaryCard({ onDownloadComplete = () => {} } = {}) {
     ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 28px sans-serif';
     ctx.fillText('TWITCH BLOOM & JUNKYARD', 480, 85);
     ctx.fillStyle = '#f8fafc'; ctx.font = '900 52px sans-serif';
-    ctx.fillText('오늘의 방송 결산 카드', 480, 150);
+    ctx.fillText('DAILY STREAM RECAP', 480, 150);
 
     // Dynamic Title based on Flower vs Trash ratio
     const activeFlowers = stats.activeFlowers || 0;
     const currentTrash = stats.currentTrash || 0;
     const totalItems = activeFlowers + currentTrash;
-    let rankTitle = '🌿 쓰레기통 옆에 피어난 야생화 구역';
+    let rankTitle = '🌿 Wildflower Meadow by the Junkyard';
     let titleColor = '#4ade80';
 
     if (totalItems > 0) {
       const flowerRatio = activeFlowers / totalItems;
       if (flowerRatio >= 0.8) {
-        rankTitle = '🌺 요정들이 노니는 1급수 비밀의 화원';
+        rankTitle = '🌺 Enchanted Pristine Fairy Garden';
         titleColor = '#f472b6';
       } else if (flowerRatio <= 0.2) {
-        rankTitle = '🗑️ 피자 냄새 진동하는 혼돈의 폐기물 매립지';
+        rankTitle = '🗑️ Chaotic Junkyard of Pizza & Trash';
         titleColor = '#fb923c';
       }
     }
@@ -70,10 +70,10 @@ export function createSummaryCard({ onDownloadComplete = () => {} } = {}) {
 
     // Stats Grid 4 Boxes
     const boxes = [
-      { label: '활성 꽃 송이', val: `${activeFlowers} 송이`, icon: '🌸', col: '#f472b6' },
-      { label: '투척된 쓰레기', val: `${stats.totalTrash || 0} 개`, icon: '🥫', col: '#fb923c' },
-      { label: '물주기 & 햇빛', val: `${(stats.totalWatered || 0) + (stats.totalSunned || 0)} 회`, icon: '💧', col: '#38bdf8' },
-      { label: '청소된 쓰레기', val: `${stats.totalCleaned || 0} 개`, icon: '✨', col: '#4ade80' }
+      { label: 'Active Flowers', val: `${activeFlowers} blooms`, icon: '🌸', col: '#f472b6' },
+      { label: 'Trash Dumped', val: `${stats.totalTrash || 0} items`, icon: '🥫', col: '#fb923c' },
+      { label: 'Water & Sun', val: `${(stats.totalWatered || 0) + (stats.totalSunned || 0)} times`, icon: '💧', col: '#38bdf8' },
+      { label: 'Trash Cleaned', val: `${stats.totalCleaned || 0} items`, icon: '✨', col: '#4ade80' }
     ];
     boxes.forEach((b, i) => {
       const bx = 80 + (i % 2) * 410, by = 260 + Math.floor(i / 2) * 155;
@@ -97,28 +97,28 @@ export function createSummaryCard({ onDownloadComplete = () => {} } = {}) {
     // Top Gardener
     ctx.textAlign = 'left';
     ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 20px sans-serif';
-    ctx.fillText('👑 최고 정원사 MVP', 110, mvpTopY + 42);
+    ctx.fillText('👑 TOP GARDENER MVP', 110, mvpTopY + 42);
     ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(stats.topGardener || '정원 꿈나무', 110, mvpTopY + 84);
+    ctx.fillText(stats.topGardener || 'Kind Chatters', 110, mvpTopY + 84);
 
     // Top Troll
     ctx.textAlign = 'right';
     ctx.fillStyle = '#fb923c'; ctx.font = 'bold 20px sans-serif';
-    ctx.fillText('🍕 최고 트롤러 MVP', 850, mvpTopY + 42);
+    ctx.fillText('🍕 TOP TROLL MVP', 850, mvpTopY + 42);
     ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(stats.topTroll || '착한 시청자단', 850, mvpTopY + 84);
+    ctx.fillText(stats.topTroll || 'Peaceful Chatters', 850, mvpTopY + 84);
 
     // Contribution Ranking Table
     ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
     ctx.beginPath(); ctx.roundRect(80, 730, 800, 430, 22); ctx.fill();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 28px sans-serif';
-    ctx.textAlign = 'center'; ctx.fillText('🏆 시청자 티키타카 랭킹 🏆', 480, 775);
+    ctx.textAlign = 'center'; ctx.fillText('🏆 CHATTER LEADERBOARD 🏆', 480, 775);
 
     const users = stats.topUsers || [];
     if (users.length === 0) {
       ctx.fillStyle = '#64748b'; ctx.font = '24px sans-serif';
-      ctx.fillText('아직 참여한 시청자가 없습니다.', 480, 930);
+      ctx.fillText('No chatter activity recorded yet.', 480, 930);
     } else {
       users.slice(0, 5).forEach((u, i) => {
         const ry = 830 + i * 58;
@@ -128,7 +128,7 @@ export function createSummaryCard({ onDownloadComplete = () => {} } = {}) {
         ctx.fillText(`${medal} ${u.user}`, 110, ry);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#94a3b8'; ctx.font = '20px sans-serif';
-        ctx.fillText(`가꿈 ${((u.water || 0) + (u.sun || 0) + (u.clean || 0))}회 / 쓰레기 ${u.trash || 0}회`, 850, ry);
+        ctx.fillText(`Nurtured: ${((u.water || 0) + (u.sun || 0) + (u.clean || 0))} / Trash: ${u.trash || 0}`, 850, ry);
       });
     }
 

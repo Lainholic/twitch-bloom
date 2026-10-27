@@ -213,7 +213,7 @@ test('demo simulation dispatches scripted events and stops cleanly', async () =>
   await new Promise(r => setTimeout(r, 450));
   assert.ok(events.length >= 1);
   assert.equal(events[0].user, 'green_thumb');
-  assert.equal(events[0].text, '!물');
+  assert.equal(events[0].text, '!water');
 
   sim.stop();
   assert.equal(sim.isRunning(), false);
